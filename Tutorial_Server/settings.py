@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/2.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'cq$46igd@e5ftf)m)jp7eohj!5g0_pm-88=fe12*4wxr#_5sg7'
+SECRET_KEY = 'yo=fo_8%rdda+lorxn6p=*6(0=3f5()!ilwo5o@1#d5frplhly'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'Hotel_Supplier',
+    'Tutorial',
 ]
 
 REST_FRAMEWORK = {
@@ -55,7 +55,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'tutorial.urls'
+ROOT_URLCONF = 'Tutorial_Server.urls'
 
 TEMPLATES = [
     {
@@ -73,7 +73,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'tutorial.wsgi.application'
+WSGI_APPLICATION = 'Tutorial_Server.wsgi.application'
 
 
 # Database
@@ -82,9 +82,9 @@ WSGI_APPLICATION = 'tutorial.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'hotel_supplier',
+        'NAME': 'tutorial',
         'USER': 'root',
-        'PASSWORD': 'admin123',
+        'PASSWORD': '1q2w3e4r',
         'HOST': '127.0.0.1',
         'OPTIONS':{
             'init_command':"SET foreign_key_checks = 0;",

@@ -5,7 +5,7 @@ __date__ = '2018/4/25 下午1:34'
 from Crypto.Cipher import AES
 from Crypto import Random
 
-from configurationFile import *
+from projectConfig import *
 
 BS = 16
 pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS)

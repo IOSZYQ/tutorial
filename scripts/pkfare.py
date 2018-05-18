@@ -13,7 +13,7 @@ import requests
 from io import StringIO
 import base64
 
-from configurationFile import *
+from projectConfig import *
 
 partnerId=PKFARE_PARTNERID
 partnerKey=PKFARE_PARTNERKEY

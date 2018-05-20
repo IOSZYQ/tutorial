@@ -20,6 +20,7 @@ class DidaCountry(models.Model):
 class DidaCity(models.Model):
     country        = models.ForeignKey(DidaCountry, related_name="cities", on_delete=models.CASCADE)
     sourceId       = models.CharField(max_length=32, unique=True)
+    parentId       = models.CharField(max_length=32, null=True)
     name_cn        = models.CharField(max_length=255, null=True)
     name_en        = models.CharField(max_length=255, null=True)
     destId         = models.IntegerField(null=True)

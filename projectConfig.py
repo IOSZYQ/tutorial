@@ -11,7 +11,7 @@ YUNDIJIE_CIPHERTEXT = "4ca00ff4c898d61e1edbf1800618fb2828a226d160dad07883d04e008
 # pkfare
 PKFARE_PARTNERID="+FBJuEvcpt3jkNXgQHdYvX6V4gY="
 PKFARE_PARTNERKEY="ODQ1ZjY5OTZlNGU2MTg0ZGRjZDM2ODliZjNkOWIyMjI="
-sign=hashlib.md5("+FBJuEvcpt3jkNXgQHdYvX6V4gY=ODQ1ZjY5OTZlNGU2MTg0ZGRjZDM2ODliZjNkOWIyMjI=".encode("utf-8")).hexdigest()
+PKFARE_URL = "http://open.pkfare.com/apitest/shopping"
 
 # dida
 DIDA_CLIENT_ID = "DidaApiTestID"

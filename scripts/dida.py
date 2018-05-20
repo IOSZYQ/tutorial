@@ -16,6 +16,75 @@ from utilities import djangoUtils
 from clients import DidaClient
 from Tutorial.models.dida import (DidaCountry, DidaCity, DidaBedType, DidaBreakfastType, DidaHotel)
 
+COUNTRIES_MAP = {
+    "AE": 16,
+    "AS": 192,
+    "AX": 190,
+    "BL": 195,
+    "CD": 46,
+    "CF": 39,
+    "CG": 47,
+    "CI": 44,
+    "CK": 198,
+    "CW": 201,
+    "DM": 57,
+    "DO": 203,
+    "EU": 4,
+    "FK": 67,
+    "FM": 205,
+    "FO": 204,
+    "GN": 73,
+    "GQ": 76,
+    "GW": 75,
+    "HM": 210,
+    "KN": 215,
+    "KR": 100,
+    "KY": 202,
+    "LC": 216,
+    "MD": 112,
+    "MF": 219,
+    "MH": 222,
+    "NC": 125,
+    "NF": 227,
+    "NZ": 132,
+    "PG": 138,
+    "PM": 237,
+    "SB": 154,
+    "SD": 151,
+    "SS": 152,
+    "SY": 164,
+    "TC": 241,
+    "TZ": 175,
+    "VA": 243,
+    "VC": 244,
+    "VG": 245,
+    "WS": 248
+}
+
+COUNTRIES_NOT_FOUND = [
+    "AN",
+    "BQ",
+    "BV",
+    "CC",
+    "CX",
+    "EU",
+    "FW",
+    "GF",
+    "GP",
+    "GS",
+    "GU",
+    "IO",
+    "KV",
+    "MQ",
+    "MP",
+    "PS",
+    "SJ",
+    "TK",
+    "UM",
+    "VI",
+    "YT"
+]
+
 
 def syncDidaCountry():
     client = DidaClient()
@@ -53,19 +122,22 @@ def syncDidaCity():
             name_en = cityInfo["CityName"]
             name_cn = cityInfo["CityName_CN"] if "CityName_CN" in cityInfo else None
             sourceId = cityInfo["CityCode"]
+            parentId = cityInfo["ParentCityCode"] if "ParentCityCode" in cityInfo else None
             country = countries[countryCode]
 
             city, created = DidaCity.objects.get_or_create(sourceId=sourceId,
                                                            defaults={
                                                                "name_en": name_en,
                                                                "name_cn": name_cn,
-                                                               "country": country
+                                                               "country": country,
+                                                               "parentId": parentId
                                                            })
 
             if not created:
                 city.name_en = name_en
                 city.name_cn = name_cn
                 city.country = country
+                city.parentId = parentId
                 city.save()
 
 
@@ -131,6 +203,10 @@ def syncDidaHotel():
         zipCode = items[11]
         longitude = float(items[12]) if items[12] else None
         latitude = float(items[13]) if items[13] else None
+        if latitude and longitude and latitude > 90:
+            tmp = longitude
+            longitude = latitude
+            latitude = tmp
         starRating = items[14]
         telephone = items[15]
 
@@ -188,7 +264,7 @@ def _findPoi(hotelName, longitude, latitude):
 
     r = requests.get(projectConfig.TOS_HOTEL_URL + "?longitude={0}&latitude={1}&distance=100&q={2}".format(longitude, latitude, hotelName))
     if r.status_code != 200:
-        return None
+        sys.exit(-1)
 
     try:
         result = json.loads(r.text)
@@ -207,19 +283,28 @@ def _findPoi(hotelName, longitude, latitude):
 def syncCountryDestId():
     countries = DidaCountry.objects.filter(inactive=False)
     for country in countries:
-        destId = _findDestination(country.name_en, type=1)
-        if not destId:
-            destId = _findDestination(country.name_cn, type=1)
-        if not destId:
+        if country.sourceId in COUNTRIES_NOT_FOUND:
             continue
+        if country.sourceId in COUNTRIES_MAP:
+            country.destId = COUNTRIES_MAP[country.sourceId]
+            country.save()
+        else:
+            destId = _findDestination(country.name_en, type=1)
+            if not destId:
+                destId = _findDestination(country.name_cn, type=1)
+            if not destId:
+                continue
 
-        country.destId = destId
-        country.save()
+            country.destId = destId
+            country.save()
 
 
 def syncCityDestId():
+    count = 0
     cities = DidaCity.objects.filter(inactive=False)
     for city in cities:
+        count = count + 1
+        print(count, city.name_cn)
         destId = _findDestination(city.name_en, type=2)
         if not destId:
             destId = _findDestination(city.name_cn, type=2)
@@ -235,6 +320,9 @@ def syncHotelPoiId():
     for hotel in hotels:
         longitude = hotel.longitude
         latitude = hotel.latitude
+        if not longitude or not latitude:
+            continue
+
         name = hotel.name_en
         poiId = _findPoi(name, longitude, latitude)
         if not poiId:
@@ -245,11 +333,9 @@ def syncHotelPoiId():
 
 
 if __name__ == "__main__":
-    syncDidaCountry()
-    syncDidaCity()
-    syncDidaBreakfast()
-    syncDidaBedType()
-    syncDidaHotel()
-    syncCountryDestId()
-    syncCityDestId()
+    # syncDidaCountry()
+    # syncDidaCity()
+    #syncDidaHotel()
+    # syncCountryDestId()
+    #syncCityDestId()
     syncHotelPoiId()

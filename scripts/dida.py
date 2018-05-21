@@ -86,7 +86,7 @@ COUNTRIES_NOT_FOUND = [
 ]
 
 
-def syncDidaCountry():
+def downloadDidaCountryStaticData():
     client = DidaClient()
     countries = client.downCountryList()["Countries"]
     if not countries:
@@ -107,10 +107,10 @@ def syncDidaCountry():
             country.save()
 
 
-def syncDidaCity():
+def downloadDidaCityStaticData():
     client = DidaClient()
 
-    countries = DidaCountry.objects.filter(inactive=False).all()
+    countries = DidaCountry.objects.filter(inactive=False).order_by("id")
     countries = {country.sourceId: country for country in countries}
 
     for countryCode in countries.keys():
@@ -141,7 +141,7 @@ def syncDidaCity():
                 city.save()
 
 
-def syncDidaBedType():
+def downloadDidaBedTypeStaticData():
     client = DidaClient()
     bedTypes = client.downBedTypeList()["BedTypes"]
 
@@ -164,7 +164,7 @@ def syncDidaBedType():
             bedType.save()
 
 
-def syncDidaBreakfast():
+def downloadDidaBreakfastStaticData():
     client = DidaClient()
     breakfastTypes = client.downBreakfastTypeList()["Breakfasts"]
 
@@ -184,7 +184,7 @@ def syncDidaBreakfast():
             breakfastType.save()
 
 
-def syncDidaHotel():
+def downloadDidaHotelStaticData():
     client = DidaClient()
     hotels = client.downGetStaticInformation()
 
@@ -240,7 +240,7 @@ def _findDestination(destName, type=1):
     if not destName:
         return None
 
-    r = requests.get(projectConfig.TOS_DESTINATION_URL + "?type={0}&q={1}".format(type, destName))
+    r = requests.get(projectConfig.TOS_DESTINATION_FIND_URL + "?type={0}&q={1}".format(type, destName))
     if r.status_code != 200:
         return None
 
@@ -262,7 +262,7 @@ def _findPoi(hotelName, longitude, latitude):
     if not hotelName:
         return None
 
-    r = requests.get(projectConfig.TOS_HOTEL_URL + "?longitude={0}&latitude={1}&distance=100&q={2}".format(longitude, latitude, hotelName))
+    r = requests.get(projectConfig.TOS_HOTEL_FIND_URL + "?longitude={0}&latitude={1}&distance=100&q={2}".format(longitude, latitude, hotelName))
     if r.status_code != 200:
         sys.exit(-1)
 
@@ -280,11 +280,62 @@ def _findPoi(hotelName, longitude, latitude):
         return None
 
 
-def syncCountryDestId():
-    countries = DidaCountry.objects.filter(inactive=False)
+TOS_TOKEN = None
+def _login(force=False):
+    global TOS_TOKEN
+
+    if not force and TOS_TOKEN:
+        return TOS_TOKEN
+
+    params = {
+        "email": projectConfig.TOS_EMAIL,
+        "password": projectConfig.TOS_PASSWORD
+    }
+    r = requests.post(projectConfig.TOS_LOGIN_URL, json=params)
+    if r.status_code != 200:
+        TOS_TOKEN = None
+        return None
+    else:
+        result = json.loads(r.text)
+        TOS_TOKEN = result["result"]["token"]
+        return TOS_TOKEN
+
+
+def _createTOSCityDestination(countryId, city):
+    headers = {
+        "Authorization": "Token {0}".format(_login())
+    }
+
+    url = projectConfig.TOS_DESTINATION_NEW_URL.format(countryId)
+    r = requests.put(url, json=city, headers=headers)
+    if r.status_code != 200:
+        if r.status_code == 403 or r.status_code == 401:
+            headers = {
+                "Authorization": "Token {0}".format(_login(force=True))
+            }
+            r = requests.put(url, json=city, headers=headers)
+            if r.status_code != 200:
+                return None
+        else:
+            return None
+
+    result = json.loads(r.text)
+    return result["result"]["city"]["id"]
+
+
+def _createTOSHotel(hotel):
+    pass
+
+
+def associateCountrySourceIdwithTOSId():
+    countries = DidaCountry.objects.filter(inactive=False).order_by("id")
     for country in countries:
+        if country.destId:
+            continue
+
         if country.sourceId in COUNTRIES_NOT_FOUND:
             continue
+
         if country.sourceId in COUNTRIES_MAP:
             country.destId = COUNTRIES_MAP[country.sourceId]
             country.save()
@@ -292,32 +343,47 @@ def syncCountryDestId():
             destId = _findDestination(country.name_en, type=1)
             if not destId:
                 destId = _findDestination(country.name_cn, type=1)
-            if not destId:
-                continue
 
-            country.destId = destId
-            country.save()
+            if destId:
+                country.destId = destId
+                country.save()
 
 
-def syncCityDestId():
-    count = 0
-    cities = DidaCity.objects.filter(inactive=False)
+def associateCitySourceIdwithTOSId():
+    cities = DidaCity.objects.filter(inactive=False).order_by("id")
     for city in cities:
-        count = count + 1
-        print(count, city.name_cn)
+        if city.destId:
+            continue
+
         destId = _findDestination(city.name_en, type=2)
         if not destId:
             destId = _findDestination(city.name_cn, type=2)
-        if not destId:
+
+        if destId:
+            city.destId = destId
+            city.save()
+        else:
+            if not city.longitude or not city.latitude:
+                continue
+
+            cityId = _createTOSCityDestination(djangoUtils.encodeId(city.country.destId), {
+                "name": city.name_cn if city.name_cn else city.name_en,
+                "name_cn": city.name_cn,
+                "name_en": city.name_en,
+                "longitude": city.longitude,
+                "latitude": city.latitude
+            })
+            if cityId:
+                city.destId = djangoUtils.decodeId(cityId)
+                city.save()
+
+
+def associateHotelSourceIdwithTOSId():
+    hotels = DidaHotel.objects.filter(inactive=False).order_by("id")
+    for hotel in hotels:
+        if hotel.poiId:
             continue
 
-        city.destId = destId
-        city.save()
-
-
-def syncHotelPoiId():
-    hotels = DidaHotel.objects.filter(inactive=False)
-    for hotel in hotels:
         longitude = hotel.longitude
         latitude = hotel.latitude
         if not longitude or not latitude:
@@ -325,29 +391,46 @@ def syncHotelPoiId():
 
         name = hotel.name_en
         poiId = _findPoi(name, longitude, latitude)
-        if not poiId:
-            continue
+        if poiId:
+            hotel.poiId = poiId
+            hotel.save()
+        else:
+            _createTOSHotel(hotel)
 
-        hotel.poiId = poiId
-        hotel.save()
+
+def geocodeCountryLocation():
+    countries = DidaCountry.objects.filter(inactive=False).order_by("id")
+    client = GoogleMapClient()
+
+    for country in countries:
+        address = country.name_en
+        longitude, latitude = client.searchLocation(address)
+        if longitude and latitude:
+            country.longitude = longitude
+            country.latitude = latitude
+            country.save()
 
 
-def syncCityLocation():
-    cities = DidaCity.objects.filter(inactive=False)
+def geocodeCityLocation():
+    cities = DidaCity.objects.filter(inactive=False).order_by("id")
     client = GoogleMapClient()
 
     for city in cities:
         address = city.name_en
         longitude, latitude = client.searchLocation(address)
-        city.longitude = longitude
-        city.latitude = latitude
-        city.save()
+        if longitude and latitude:
+            city.longitude = longitude
+            city.latitude = latitude
+            city.save()
 
 if __name__ == "__main__":
-    # syncDidaCountry()
-    # syncDidaCity()
-    #syncDidaHotel()
-    # syncCountryDestId()
-    #syncCityDestId()
-    #syncHotelPoiId()
-    syncCityLocation()
+    downloadDidaCountryStaticData()
+    geocodeCountryLocation()
+    associateCountrySourceIdwithTOSId()
+
+    downloadDidaCityStaticData()
+    geocodeCityLocation()
+    associateCitySourceIdwithTOSId()
+
+    downloadDidaHotelStaticData()
+    associateHotelSourceIdwithTOSId()

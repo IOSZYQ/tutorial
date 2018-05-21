@@ -1,9 +1,7 @@
 __author__ = "HanHui"
 
 import json
-import gzip
-import base64
-import hashlib
+import certifi
 import requests
 import projectConfig
 
@@ -16,7 +14,7 @@ class GoogleMapClient(object):
             "key": projectConfig.GOOGLE_MAP_KEY
         }
 
-        r = requests.get(url=projectConfig.GOOGLE_MAP_URL, params=params)
+        r = requests.get(url=projectConfig.GOOGLE_MAP_URL, params=params, verify=certifi.where())
         if r.status_code != 200:
             return None, None
 

@@ -23,9 +23,13 @@ BOOK_AGENCY_CODE='LUSHU'
 BOOK_SIGN='c~P#F41d'
 
 # lushu server
-TOS_DESTINATION_URL = "http://127.0.0.1/tos/destination/find/"
-TOS_HOTEL_URL = "http://127.0.0.1/tos/hotel/find/"
+TOS_DESTINATION_FIND_URL = "http://127.0.0.1/tos/destination/find/"
+TOS_DESTINATION_NEW_URL = "http://127.0.0.1/tos/destination/{0}/new-city/"
+TOS_HOTEL_FIND_URL = "http://127.0.0.1/tos/hotel/find/"
+TOS_LOGIN_URL = "http://127.0.0.1/auth/login/"
+TOS_EMAIL = "swolfod@gmail.com"
+TOS_PASSWORD = "12345678"
 
 # google map
-GOOGLE_MAP_URL = "https://maps.googleapis.com/maps/api/geocode/json"
+GOOGLE_MAP_URL = "https://ditu.google.cn/maps/api/geocode/json"
 GOOGLE_MAP_KEY = "AIzaSyAjb0DJ3_krh0Yg-Y3kg5bhgHrzFpYEWL0"

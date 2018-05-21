@@ -13,7 +13,7 @@ django.setup()
 import projectConfig
 from utilities import djangoUtils
 
-from clients import DidaClient
+from clients import DidaClient, GoogleMapClient
 from Tutorial.models.dida import (DidaCountry, DidaCity, DidaBedType, DidaBreakfastType, DidaHotel)
 
 COUNTRIES_MAP = {
@@ -332,10 +332,22 @@ def syncHotelPoiId():
         hotel.save()
 
 
+def syncCityLocation():
+    cities = DidaCity.objects.filter(inactive=False)
+    client = GoogleMapClient()
+
+    for city in cities:
+        address = city.name_en
+        longitude, latitude = client.searchLocation(address)
+        city.longitude = longitude
+        city.latitude = latitude
+        city.save()
+
 if __name__ == "__main__":
     # syncDidaCountry()
     # syncDidaCity()
     #syncDidaHotel()
     # syncCountryDestId()
     #syncCityDestId()
-    syncHotelPoiId()
+    #syncHotelPoiId()
+    syncCityLocation()

@@ -25,3 +25,7 @@ BOOK_SIGN='c~P#F41d'
 # lushu server
 TOS_DESTINATION_URL = "http://127.0.0.1/tos/destination/find/"
 TOS_HOTEL_URL = "http://127.0.0.1/tos/hotel/find/"
+
+# google map
+GOOGLE_MAP_URL = "https://maps.googleapis.com/maps/api/geocode/json"
+GOOGLE_MAP_KEY = "AIzaSyAjb0DJ3_krh0Yg-Y3kg5bhgHrzFpYEWL0"

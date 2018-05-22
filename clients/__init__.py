@@ -1,2 +1,2 @@
 from .dida import DidaClient
-from .googleMap import GoogleMapClient
+from .map import GoogleMapClient

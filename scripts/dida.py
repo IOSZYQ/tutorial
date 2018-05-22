@@ -141,49 +141,6 @@ def downloadDidaCityStaticData():
                 city.save()
 
 
-def downloadDidaBedTypeStaticData():
-    client = DidaClient()
-    bedTypes = client.downBedTypeList()["BedTypes"]
-
-    for bedTypeInfo in bedTypes:
-        defaultOccupancy = bedTypeInfo["DefaultOccupancy"]
-        typeId = bedTypeInfo["ID"]
-        name_en = bedTypeInfo["Name"]
-        name_cn = bedTypeInfo["Name_CN"]
-
-        bedType, created = DidaBedType.objects.get_or_create(typeId=typeId,
-                                                             defaults={
-                                                                "name_cn": name_cn,
-                                                                "name_en": name_en,
-                                                                "defaultOccupancy": defaultOccupancy
-                                                             })
-        if not created:
-            bedType.name_cn = name_cn
-            bedType.name_en = name_en
-            bedType.defaultOccupancy = defaultOccupancy
-            bedType.save()
-
-
-def downloadDidaBreakfastStaticData():
-    client = DidaClient()
-    breakfastTypes = client.downBreakfastTypeList()["Breakfasts"]
-
-    for breakfastInfo in breakfastTypes:
-        typeId = breakfastInfo["ID"]
-        name_en = breakfastInfo["Name"]
-        name_cn = breakfastInfo["Name_CN"]
-
-        breakfastType, created = DidaBreakfastType.objects.get_or_create(typeId=typeId,
-                                                                         defaults={
-                                                                            "name_cn": name_cn,
-                                                                            "name_en": name_en
-                                                                         })
-        if not created:
-            breakfastType.name_cn = name_cn
-            breakfastType.name_en = name_en
-            breakfastType.save()
-
-
 def downloadDidaHotelStaticData():
     client = DidaClient()
     hotels = client.downGetStaticInformation()
@@ -278,27 +235,6 @@ def _findPoi(hotelName, longitude, latitude):
         return djangoUtils.decodeId(hotels[0]["id"])
     except:
         return None
-
-
-TOS_TOKEN = None
-def _login(force=False):
-    global TOS_TOKEN
-
-    if not force and TOS_TOKEN:
-        return TOS_TOKEN
-
-    params = {
-        "email": projectConfig.TOS_EMAIL,
-        "password": projectConfig.TOS_PASSWORD
-    }
-    r = requests.post(projectConfig.TOS_LOGIN_URL, json=params)
-    if r.status_code != 200:
-        TOS_TOKEN = None
-        return None
-    else:
-        result = json.loads(r.text)
-        TOS_TOKEN = result["result"]["token"]
-        return TOS_TOKEN
 
 
 def _createTOSCityDestination(countryId, city):

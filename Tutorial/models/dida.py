@@ -39,29 +39,6 @@ class DidaCity(models.Model):
         ]
 
 
-class DidaBedType(models.Model):
-    typeId         = models.IntegerField(unique=True)
-    defaultOccupancy = models.IntegerField()
-    name_cn        = models.CharField(max_length=64, default="")
-    name_en        = models.CharField(max_length=64, default="")
-    inactive       = models.BooleanField(default=False)
-    created        = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        app_label = "Tutorial"
-
-
-class DidaBreakfastType(models.Model):
-    typeId         = models.IntegerField(unique=True)
-    name_cn        = models.CharField(max_length=64, default="")
-    name_en        = models.CharField(max_length=64, default="")
-    inactive       = models.BooleanField(default=False)
-    created        = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        app_label = "Tutorial"
-
-
 class DidaHotel(models.Model):
     city           = models.ForeignKey(DidaCity, related_name="hotels", on_delete=models.CASCADE)
     sourceId       = models.IntegerField(unique=True)

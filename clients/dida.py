@@ -50,15 +50,6 @@ class DidaClient(object):
         }
         return self._fetchData('/api/staticdata/GetCityList?$format=json', params=params)
 
-    def downBedTypeList(self):
-        return self._fetchData('/api/staticdata/GetBedTypeList?$format=json')
-
-    def downBreakfastTypeList(self):
-        return self._fetchData('/api/staticdata/GetBreakfastTypeList?$format=json')
-
-    def downPropertyCategoryList(self):
-        return self._fetchData('/api/staticdata/GetPropertyCategoryList?$format=json')
-
     def downGetStaticInformation(self):
         params = {
           "IsGetUrlOnly": True,

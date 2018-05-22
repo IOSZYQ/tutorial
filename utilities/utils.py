@@ -1,12 +1,39 @@
 __author__ = 'HanHui'
 
 import re
+import copy
 import logging
 import requests
+import collections
 
 adtwLogger = logging.getLogger("ADTW")
 
 REQUEST_TIMEOUT = 60
+
+
+def extractData(oriData, fields=None):
+    if fields == None:
+        return copy.deepcopy(oriData)
+
+    if oriData == None:
+        return None
+
+    result = {}
+
+    for k, v in fields.items():
+        if k not in oriData:
+            continue
+
+        oriValue = oriData[k]
+        if isinstance(v, collections.Mapping) and oriValue != None:
+            if isinstance(oriValue, list):
+                result[k] = [extractData(oriItem, v) for oriItem in oriValue]
+            else:
+                result[k] = extractData(oriValue, v)
+        elif v:
+            result[k] = copy.deepcopy(oriValue)
+
+    return result
 
 
 def safeRequests(url):

@@ -100,3 +100,6 @@ configurationFile.py
 .mypy_cache/
 
 .idea
+
+#static
+static/

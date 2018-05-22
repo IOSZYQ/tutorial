@@ -2,7 +2,7 @@ __author__ = "HanHui"
 
 from clients import DidaClient
 from utilities import djangoUtils
-from Tutorial.models import DidaCity, DidaHotel
+from Tutorial.models import Destination, Hotel
 
 
 def read(**kwargs):
@@ -14,7 +14,7 @@ def read(**kwargs):
     start = kwargs.get("start")
     count = kwargs.get("count")
 
-    city = DidaCity.objects.filter(destId=djangoUtils.decodeId(cityId)).first()
+    city = City.objects.filter(destId=djangoUtils.decodeId(cityId)).first()
     if not city:
         return []
 
@@ -30,7 +30,7 @@ def read(**kwargs):
     hotels = client.searchHotelPrices(checkIn, checkOut, str(city.sourceId), star, countPerPage, pageNum)
     hotelDict = {hotel["HotelID"]: hotel for hotel in hotels}
 
-    hotels = DidaHotel.objects.filter(sourceId__in=hotelDict.keys()).all()
+    hotels = Hotel.objects.filter(sourceId__in=hotelDict.keys()).all()
     return [{"name_en": hotel.name_en,
              "name_cn": hotel.name_cn,
              "price": hotelDict[hotel.sourceId]["LowestPrice"]["Value"],

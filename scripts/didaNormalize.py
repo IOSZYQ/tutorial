@@ -13,7 +13,7 @@ from Tutorial.models import Destination, Dida
 
 
 def normalizeDidaCountry():
-    dida = Dida.objects.filter(syncDate__isnull=True).order_by("-created").first()
+    dida = Dida.objects.filter(syncTime__isnull=True).order_by("-created").first()
     countryFilePath = dida.countryFilePath
     countryFile = open(countryFilePath, "r")
     countries = json.loads(countryFile.read())
@@ -38,7 +38,7 @@ def normalizeDidaCountry():
 
 
 def normalizeDidaCity():
-    dida = Dida.objects.filter(syncDate__isnull=True).order_by("-created").first()
+    dida = Dida.objects.filter(syncTime__isnull=True).order_by("-created").first()
     cityFilePath = dida.cityFilePath
     cityFile = open(cityFilePath, "r")
     cities = json.loads(cityFile.read())

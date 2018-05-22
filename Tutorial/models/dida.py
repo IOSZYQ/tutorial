@@ -6,4 +6,4 @@ class Dida(models.Model):
     cityFilePath       = models.FilePathField(null=True)
     hotelFilePath      = models.FilePathField(null=True)
     created            = models.DateTimeField(auto_now_add=True)
-    syncDate           = models.DateTimeField(null=True)
+    syncTime           = models.DateTimeField(null=True)

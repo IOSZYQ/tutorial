@@ -2,6 +2,7 @@ __author__ = 'HanHui'
 
 import re
 import copy
+import hashlib
 import logging
 import requests
 import collections
@@ -9,6 +10,20 @@ import collections
 adtwLogger = logging.getLogger("ADTW")
 
 REQUEST_TIMEOUT = 60
+
+
+def generateVersion(data):
+    md5 = hashlib.md5()
+
+    dataStr = ""
+    for key, value in data.items():
+        if not value:
+            value = ""
+        dataStr += "{0}={1}|".format(key, value)
+    dataStr = dataStr.rstrip("|")
+
+    md5.update(dataStr.encode(encoding='utf-8'))
+    return md5.hexdigest()
 
 
 def extractData(oriData, fields=None):

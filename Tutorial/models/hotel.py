@@ -1,10 +1,12 @@
+__author__ = "HanHui"
+
 from django.db import models
 
 
 class Hotel(models.Model):
     source         = models.CharField(max_length=32)
+    sourceId = models.IntegerField(unique=True)
     version        = models.CharField(max_length=64, null=True)
-    sourceId       = models.IntegerField(unique=True)
     tosId          = models.IntegerField(null=True)
     cityId         = models.CharField(max_length=32)
     name_en        = models.CharField(max_length=128)
@@ -27,4 +29,7 @@ class Hotel(models.Model):
 
 
 class HotelUpdate(models.Model):
-    pass
+    hotel     = models.OneToOneField(Hotel, related_name="update")
+    data            = models.TextField()
+    created         = models.DateTimeField(auto_now_add=True)
+    syncTime        = models.DateTimeField(null=True)

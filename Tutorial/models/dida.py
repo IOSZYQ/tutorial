@@ -1,3 +1,5 @@
+__author__ = "HanHui"
+
 from django.db import models
 
 
@@ -6,4 +8,4 @@ class Dida(models.Model):
     cityFilePath       = models.FilePathField(null=True)
     hotelFilePath      = models.FilePathField(null=True)
     created            = models.DateTimeField(auto_now_add=True)
-    syncTime           = models.DateTimeField(null=True)
+    normalizeTime      = models.DateTimeField(null=True)

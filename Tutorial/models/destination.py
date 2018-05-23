@@ -1,3 +1,5 @@
+__author__ = "HanHui"
+
 from django.db import models
 
 
@@ -15,6 +17,7 @@ class Destination(models.Model):
     latitude       = models.FloatField(null=True)
     inactive       = models.BooleanField(default=False)
     created        = models.DateTimeField(auto_now_add=True)
+    updated        = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = "Tutorial"
@@ -25,4 +28,7 @@ class Destination(models.Model):
 
 
 class DestinationUpdate(models.Model):
-    pass
+    destination     = models.OneToOneField(Destination, related_name="update")
+    data            = models.TextField()
+    created         = models.DateTimeField(auto_now_add=True)
+    syncTime        = models.DateTimeField(null=True)

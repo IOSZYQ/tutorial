@@ -29,6 +29,7 @@ class Hotel(models.Model):
 
 
 class HotelUpdate(models.Model):
+    source          = models.CharField(max_length=32)
     sourceId        = models.IntegerField(unique=True)
     json            = models.TextField()
     created         = models.DateTimeField(auto_now_add=True)

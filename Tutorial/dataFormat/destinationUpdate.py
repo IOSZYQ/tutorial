@@ -8,6 +8,7 @@ class DestinationUpdateFields:
     def brief(cls):
         return {
             "id"            : True,
+            "source"        : True,
             "sourceId"      : True,
             "countryCode"   : True,
             "json"          : True,

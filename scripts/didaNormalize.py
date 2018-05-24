@@ -122,7 +122,7 @@ def normalizeDidaCountry():
         if update:
             destinationUpdate = DestinationUpdate.objects.filter(countryCode=countryCode).first()
             if not destinationUpdate:
-                DestinationUpdate.objects.create(countryCode=countryCode, json=json.dumps(update))
+                DestinationUpdate.objects.create(countryCode=countryCode, source="dida", json=json.dumps(update))
             else:
                 destinationUpdate.data = json.dumps(update)
                 destinationUpdate.save()
@@ -153,7 +153,7 @@ def normalizeDidaCity():
         if update:
             destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId).first()
             if not destinationUpdate:
-                DestinationUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, json=json.dumps(update))
+                DestinationUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, source="dida", json=json.dumps(update))
             else:
                 destinationUpdate.data = json.dumps(update)
                 destinationUpdate.save()
@@ -203,7 +203,7 @@ def normalizeDidaHotel():
         if update:
             hotelUpdate = HotelUpdate.objects.filter(sourceId=sourceId).first()
             if not hotelUpdate:
-                HotelUpdate.objects.create(sourceId=sourceId, json=json.dumps(update))
+                HotelUpdate.objects.create(sourceId=sourceId, source="dida", json=json.dumps(update))
             else:
                 hotelUpdate.data = json.dumps(update)
                 hotelUpdate.save()

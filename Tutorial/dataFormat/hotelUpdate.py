@@ -8,6 +8,7 @@ class HotelUpdateFields:
     def brief(cls):
         return {
             "id"            : True,
+            "source"        : True,
             "sourceId"      : True,
             "json"          : True,
             "updated"       : True,

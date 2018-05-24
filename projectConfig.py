@@ -4,7 +4,12 @@ __date__ = '2018/5/7 下午6:49'
 
 import hashlib
 
-DATE_TIME_FORMAT = "%Y%m%d%H%M%S"
+DATE_FORMAT = "%Y-%m-%d"
+TIME_FORMAT = "%H:%M:%S"
+DATE_TIME_FORMAT = "{0} {1}".format(DATE_FORMAT, TIME_FORMAT)
+
+DATETIME_FILE_FORMAT = "%Y%m%d%H%M%S"
+
 
 # 云地接
 YUNDIJIE_KEY = "140b41b22a29beb4061bda66b6747e14"

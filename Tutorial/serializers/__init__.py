@@ -1,0 +1,2 @@
+from .destinationUpdate import DestinationUpdateSerializer
+from .hotelUpdate import HotelUpdateSerializer

@@ -1,40 +1,41 @@
 __author__ = "HanHui"
 
-from clients import DidaClient
 from utilities import djangoUtils
-from Tutorial.models import Destination, Hotel
+from Tutorial.models import DestinationUpdate
+from Tutorial.serializers import DestinationUpdateSerializer
 
 
 def read(**kwargs):
-    query = kwargs.get("query")
-    checkIn = query.get("checkIn")
-    checkOut = query.get("checkOut")
-    cityId = query.get("city")
-    star = query.get("star")
-    start = kwargs.get("start")
-    count = kwargs.get("count")
+    query = kwargs.get('query', {})
+    fields = kwargs.get('fields')
+    updateIds = query.get('id')
 
-    city = City.objects.filter(destId=djangoUtils.decodeId(cityId)).first()
-    if not city:
-        return []
+    if updateIds:
+        updateIds = djangoUtils.decodeIdList(updateIds)
+        count = len(updateIds)
+        total = count
+        hasMore = False
+        destinationUpdates = DestinationUpdate.objects.filter(pk__in=updateIds)
+    else:
+        destinationUpdates = DestinationUpdate.objects.all()
 
-    pageNum = None
-    countPerPage = None
-    if start is not None and count is not None:
-        start = int(start)
-        count = int(count)
-        countPerPage = count
-        pageNum = int(start / count + 1)
+        last = kwargs.get("last", None)
+        start = kwargs.get("start", 0)
+        count = kwargs.get("count", 24)
+        last = djangoUtils.decodeId(last) if last else 0
+        destinationUpdates = destinationUpdates.filter(pk__gt=last)[start:start + count + 1]
 
-    client = DidaClient()
-    hotels = client.searchHotelPrices(checkIn, checkOut, str(city.sourceId), star, countPerPage, pageNum)
-    hotelDict = {hotel["HotelID"]: hotel for hotel in hotels}
+        total = destinationUpdates.count()
+        if total > count:
+            destinationUpdates = destinationUpdates[0:count]
+            total = count
+            hasMore = True
+        else:
+            hasMore = False
 
-    hotels = Hotel.objects.filter(sourceId__in=hotelDict.keys()).all()
-    return [{"name_en": hotel.name_en,
-             "name_cn": hotel.name_cn,
-             "price": hotelDict[hotel.sourceId]["LowestPrice"]["Value"],
-             "currency": hotelDict[hotel.sourceId]["LowestPrice"]["Currency"],
-             "sourceId": hotel.sourceId,
-             "poiId": hotel.poiId
-             } for hotel in hotels]
+    data = [DestinationUpdateSerializer(destinationUpdate, fields=fields).data for destinationUpdate in destinationUpdates]
+    return {
+        "total": total,
+        "hasMore": hasMore,
+        "updates": data
+    }

@@ -43,7 +43,7 @@ def _saveStaticData(dateStr, countryJson=None, cityJson=None, hotelCsv=None):
 
 
 def downloadDidaStaticData():
-    dateStr = datetime.datetime.now().strftime(projectConfig.DATE_TIME_FORMAT)
+    dateStr = datetime.datetime.now().strftime(projectConfig.DATETIME_FILE_FORMAT)
     client = DidaClient()
     countries = client.downCountryList()["Countries"]
 

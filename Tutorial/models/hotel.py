@@ -30,7 +30,7 @@ class Hotel(models.Model):
 
 class HotelUpdate(models.Model):
     sourceId        = models.IntegerField(unique=True)
-    data            = models.TextField()
+    json            = models.TextField()
     created         = models.DateTimeField(auto_now_add=True)
     updated         = models.DateTimeField(auto_now=True)
 

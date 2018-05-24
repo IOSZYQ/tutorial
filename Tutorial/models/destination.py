@@ -30,7 +30,7 @@ class Destination(models.Model):
 class DestinationUpdate(models.Model):
     sourceId        = models.CharField(max_length=32, null=True)
     countryCode     = models.CharField(max_length=16, null=True)
-    data            = models.TextField()
+    json            = models.TextField()
     created         = models.DateTimeField(auto_now_add=True)
     updated         = models.DateTimeField(auto_now=True)
 

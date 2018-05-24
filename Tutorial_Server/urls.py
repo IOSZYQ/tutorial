@@ -20,4 +20,6 @@ from Tutorial import views
 
 urlpatterns = [
     url(r'^hotel/find/$', views.HotelFind.as_view(), name="HotelFind"),
+    url(r'^destination/updates/$', views.DestinationUpdates.as_view(), name="DestinationUpdates"),
+    url(r'^hotel/updates/$', views.HotelUpdates.as_view(), name="DestinationUpdates"),
 ]

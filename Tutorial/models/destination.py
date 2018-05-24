@@ -28,7 +28,11 @@ class Destination(models.Model):
 
 
 class DestinationUpdate(models.Model):
-    destination     = models.OneToOneField(Destination, related_name="update")
+    sourceId        = models.CharField(max_length=32, null=True)
+    countryCode     = models.CharField(max_length=16, null=True)
     data            = models.TextField()
     created         = models.DateTimeField(auto_now_add=True)
-    syncTime        = models.DateTimeField(null=True)
+    updated         = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "Tutorial"

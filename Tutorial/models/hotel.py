@@ -5,7 +5,7 @@ from django.db import models
 
 class Hotel(models.Model):
     source         = models.CharField(max_length=32)
-    sourceId = models.IntegerField(unique=True)
+    sourceId       = models.IntegerField(unique=True)
     version        = models.CharField(max_length=64, null=True)
     tosId          = models.IntegerField(null=True)
     cityId         = models.CharField(max_length=32)
@@ -29,7 +29,10 @@ class Hotel(models.Model):
 
 
 class HotelUpdate(models.Model):
-    hotel     = models.OneToOneField(Hotel, related_name="update")
+    sourceId        = models.IntegerField(unique=True)
     data            = models.TextField()
     created         = models.DateTimeField(auto_now_add=True)
-    syncTime        = models.DateTimeField(null=True)
+    updated         = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = "Tutorial"

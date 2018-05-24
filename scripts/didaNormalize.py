@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tutorial_Server.settings")
 django.setup()
 
+from django.conf import settings
 from utilities.utils import generateVersion
 from Tutorial.models import Destination, Dida, DestinationUpdate, Hotel, HotelUpdate
 
@@ -103,8 +104,8 @@ def _generateHotelUpdate(hotel, data, newVersion):
 
 def normalizeDidaCountry():
     dida = Dida.objects.filter(normalizeTime__isnull=True).order_by("-created").first()
-    countryFilePath = dida.countryFilePath
-    countryFile = open(countryFilePath, "r")
+    filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.countryFile)
+    countryFile = open(filePath, "r")
     countries = json.loads(countryFile.read())
 
     for countryInfo in countries:
@@ -118,14 +119,10 @@ def normalizeDidaCountry():
         destination = Destination.objects.filter(countryCode=countryCode, source="dida").first()
         update = _generateCountryUpdate(destination, data, newVersion)
 
-        if not destination:
-            destination = Destination.objects.create(name_cn=name_cn, name_en=name_en, version=newVersion,
-                                                     countryCode=countryCode, adminLevel=1, source="dida")
-
         if update:
-            destinationUpdate = DestinationUpdate.objects.filter(destination=destination).first()
+            destinationUpdate = DestinationUpdate.objects.filter(countryCode=countryCode).first()
             if not destinationUpdate:
-                DestinationUpdate.objects.create(destination=destination, data=json.dumps(update))
+                DestinationUpdate.objects.create(countryCode=countryCode, data=json.dumps(update))
             else:
                 destinationUpdate.data = json.dumps(update)
                 destinationUpdate.save()
@@ -133,8 +130,8 @@ def normalizeDidaCountry():
 
 def normalizeDidaCity():
     dida = Dida.objects.filter(normalizeTime__isnull=True).order_by("-created").first()
-    cityFilePath = dida.cityFilePath
-    cityFile = open(cityFilePath, "r")
+    filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.cityFile)
+    cityFile = open(filePath, "r")
     cities = json.loads(cityFile.read())
 
     for city in cities:
@@ -150,18 +147,13 @@ def normalizeDidaCity():
                                         ("parentId", parentId)])
         newVersion = generateVersion(data)
 
-        destination = Destination.objects.filter(countryCode=countryCode, source="dida").first()
+        destination = Destination.objects.filter(sourceId=sourceId, source="dida").first()
         update = _generateCityUpdate(destination, data, newVersion)
 
-        if not destination:
-            destination = Destination.objects.create(name_cn=name_cn, name_en=name_en, version=newVersion,
-                                                     countryCode=countryCode, adminLevel=2, source="dida",
-                                                     parentId=parentId, sourceId=sourceId)
-
         if update:
-            destinationUpdate = DestinationUpdate.objects.filter(destination=destination).first()
+            destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId).first()
             if not destinationUpdate:
-                DestinationUpdate.objects.create(destination=destination, data=json.dumps(update))
+                DestinationUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, data=json.dumps(update))
             else:
                 destinationUpdate.data = json.dumps(update)
                 destinationUpdate.save()
@@ -169,8 +161,8 @@ def normalizeDidaCity():
 
 def normalizeDidaHotel():
     dida = Dida.objects.filter(normalizeTime__isnull=True).order_by("-created").first()
-    hotelFilePath = dida.hotelCsvFilePath
-    hotelFile = open(hotelFilePath, "r")
+    filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.hotelFile)
+    hotelFile = open(filePath, "r", encoding="utf-8")
     hotels = hotelFile.read()
 
     for hotelInfo in hotels.split("\n")[1:]:
@@ -208,16 +200,10 @@ def normalizeDidaHotel():
         hotel = Hotel.objects.filter(sourceId=sourceId, source="dida").first()
         update = _generateHotelUpdate(hotel, data, newVersion)
 
-        if not hotel:
-            hotel = Hotel.objects.create(name_cn=name_cn, name_en=name_en, sourceId=sourceId,
-                                         address=address, cityId=cityId, zipCode=zipCode,
-                                         longitude=longitude, latitude=latitude, starRating=starRating,
-                                         telephone=telephone)
-
         if update:
-            hotelUpdate = HotelUpdate.objects.filter(hotel=hotel).first()
+            hotelUpdate = HotelUpdate.objects.filter(sourceId=sourceId).first()
             if not hotelUpdate:
-                HotelUpdate.objects.create(hotel=hotel, data=json.dumps(update))
+                HotelUpdate.objects.create(sourceId=sourceId, data=json.dumps(update))
             else:
                 hotelUpdate.data = json.dumps(update)
                 hotelUpdate.save()
@@ -391,4 +377,6 @@ def normalizeDidaHotel():
 #             city.save()
 
 if __name__ == "__main__":
-    normalizeDidaCity()
+    #normalizeDidaCountry()
+    #normalizeDidaCity()
+    normalizeDidaHotel()

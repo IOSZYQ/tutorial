@@ -3,7 +3,7 @@ __author__ = "HanHui"
 from rest_framework.views import APIView
 from utilities.viewUtils import viewResponse
 
-from Tutorial.api import dida as didaApi
+from Tutorial.api import destination as didaApi
 
 
 class HotelFind(APIView):

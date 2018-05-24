@@ -39,7 +39,7 @@ def _saveStaticData(dateStr, countryJson=None, cityJson=None, hotelCsv=None):
         saveFile = open(filePath, "w", encoding="utf-8", newline="")
         saveFile.write(data)
         saveFile.close()
-    return filePath
+    return fileName
 
 
 def downloadDidaStaticData():
@@ -48,7 +48,7 @@ def downloadDidaStaticData():
     countries = client.downCountryList()["Countries"]
 
     countryJson = json.dumps(countries, indent=4)
-    countryFilePath = _saveStaticData(dateStr, countryJson=countryJson)
+    countryFile = _saveStaticData(dateStr, countryJson=countryJson)
 
     cityList = []
     countryCodes = [country["ISOCountryCode"] for country in countries]
@@ -59,12 +59,12 @@ def downloadDidaStaticData():
 
         cityList.extend(cities["Cities"])
     cityJson = json.dumps(cityList, indent=4)
-    cityFilePath = _saveStaticData(dateStr, cityJson=cityJson)
+    cityFile = _saveStaticData(dateStr, cityJson=cityJson)
 
     hotelCsv = client.downGetStaticInformation()
-    hotelFilePath = _saveStaticData(dateStr, hotelCsv=hotelCsv)
+    hotelFile = _saveStaticData(dateStr, hotelCsv=hotelCsv)
 
-    Dida.objects.create(countryFilePath=countryFilePath, cityFilePath=cityFilePath, hotelFilePath=hotelFilePath)
+    Dida.objects.create(countryFile=countryFile, cityFile=cityFile, hotelFile=hotelFile)
 
 if __name__ == "__main__":
     downloadDidaStaticData()

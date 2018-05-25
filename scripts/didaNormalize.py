@@ -11,6 +11,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tutorial_Server.settings")
 django.setup()
 
 from django.conf import settings
+from clients.map import GoogleMapClient
 from utilities.utils import generateVersion
 from Tutorial.models import Destination, Dida, DestinationUpdate, Hotel, HotelUpdate
 
@@ -209,174 +210,35 @@ def normalizeDidaHotel():
                 hotelUpdate.save()
 
 
-#
-# def _findDestination(destName, type=1):
-#     if not destName:
-#         return None
-#
-#     r = requests.get(projectConfig.TOS_DESTINATION_FIND_URL + "?type={0}&q={1}".format(type, destName))
-#     if r.status_code != 200:
-#         return None
-#
-#     try:
-#         result = json.loads(r.text)
-#         if "result" not in result or "destinations" not in result["result"]:
-#             return None
-#
-#         destinations = result["result"]["destinations"]
-#         if len(destinations) != 1:
-#             return None
-#
-#         return djangoUtils.decodeId(destinations[0]["id"])
-#     except:
-#         return None
-#
-#
-# def _findPoi(hotelName, longitude, latitude):
-#     if not hotelName:
-#         return None
-#
-#     r = requests.get(projectConfig.TOS_HOTEL_FIND_URL + "?longitude={0}&latitude={1}&distance=100&q={2}".format(longitude, latitude, hotelName))
-#     if r.status_code != 200:
-#         sys.exit(-1)
-#
-#     try:
-#         result = json.loads(r.text)
-#         if "result" not in result or "hotels" not in result["result"]:
-#             return None
-#
-#         hotels = result["result"]["hotels"]
-#         if len(hotels) != 1:
-#             return None
-#
-#         return djangoUtils.decodeId(hotels[0]["id"])
-#     except:
-#         return None
-#
-#
-# def _createTOSCityDestination(countryId, city):
-#     headers = {
-#         "Authorization": "Token {0}".format(_login())
-#     }
-#
-#     url = projectConfig.TOS_DESTINATION_NEW_URL.format(countryId)
-#     r = requests.put(url, json=city, headers=headers)
-#     if r.status_code != 200:
-#         if r.status_code == 403 or r.status_code == 401:
-#             headers = {
-#                 "Authorization": "Token {0}".format(_login(force=True))
-#             }
-#             r = requests.put(url, json=city, headers=headers)
-#             if r.status_code != 200:
-#                 return None
-#         else:
-#             return None
-#
-#     result = json.loads(r.text)
-#     return result["result"]["city"]["id"]
-#
-#
-# def _createTOSHotel(hotel):
-#     pass
-#
-#
-# def associateCountrySourceIdwithTOSId():
-#     countries = Country.objects.filter(inactive=False).order_by("id")
-#     for country in countries:
-#         if country.destId:
-#             continue
-#
-#         if country.sourceId in COUNTRIES_NOT_FOUND:
-#             continue
-#
-#         if country.sourceId in COUNTRIES_MAP:
-#             country.destId = COUNTRIES_MAP[country.sourceId]
-#             country.save()
-#         else:
-#             destId = _findDestination(country.name_en, type=1)
-#             if not destId:
-#                 destId = _findDestination(country.name_cn, type=1)
-#
-#             if destId:
-#                 country.destId = destId
-#                 country.save()
-#
-#
-# def associateCitySourceIdwithTOSId():
-#     cities = City.objects.filter(inactive=False).order_by("id")
-#     for city in cities:
-#         if city.destId:
-#             continue
-#
-#         destId = _findDestination(city.name_en, type=2)
-#         if not destId:
-#             destId = _findDestination(city.name_cn, type=2)
-#
-#         if destId:
-#             city.destId = destId
-#             city.save()
-#         else:
-#             if not city.longitude or not city.latitude:
-#                 continue
-#
-#             cityId = _createTOSCityDestination(djangoUtils.encodeId(city.country.destId), {
-#                 "name": city.name_cn if city.name_cn else city.name_en,
-#                 "name_cn": city.name_cn,
-#                 "name_en": city.name_en,
-#                 "longitude": city.longitude,
-#                 "latitude": city.latitude
-#             })
-#             if cityId:
-#                 city.destId = djangoUtils.decodeId(cityId)
-#                 city.save()
-#
-#
-# def associateHotelSourceIdwithTOSId():
-#     hotels = Hotel.objects.filter(inactive=False).order_by("id")
-#     for hotel in hotels:
-#         if hotel.poiId:
-#             continue
-#
-#         longitude = hotel.longitude
-#         latitude = hotel.latitude
-#         if not longitude or not latitude:
-#             continue
-#
-#         name = hotel.name_en
-#         poiId = _findPoi(name, longitude, latitude)
-#         if poiId:
-#             hotel.poiId = poiId
-#             hotel.save()
-#         else:
-#             _createTOSHotel(hotel)
-#
-#
-# def geocodeCountryLocation():
-#     countries = Country.objects.filter(inactive=False).order_by("id")
-#     client = GoogleMapClient()
-#
-#     for country in countries:
-#         address = country.name_en
-#         longitude, latitude = client.searchLocation(address)
-#         if longitude and latitude:
-#             country.longitude = longitude
-#             country.latitude = latitude
-#             country.save()
-#
-#
-# def geocodeCityLocation():
-#     cities = City.objects.filter(inactive=False).order_by("id")
-#     client = GoogleMapClient()
-#
-#     for city in cities:
-#         address = city.name_en
-#         longitude, latitude = client.searchLocation(address)
-#         if longitude and latitude:
-#             city.longitude = longitude
-#             city.latitude = latitude
-#             city.save()
+def geocodeCountryLocation():
+    countries = DestinationUpdate.objects.filter(sourceId__isnull=True).order_by("id")
+    client = GoogleMapClient()
+
+    for country in countries:
+        address = country.name_en
+        longitude, latitude = client.searchLocation(address)
+        if longitude and latitude:
+            country.longitude = longitude
+            country.latitude = latitude
+            country.save()
+
+
+def geocodeCityLocation():
+    cities = DestinationUpdate.objects.filter(sourceId__isnull=False).order_by("id")
+    client = GoogleMapClient()
+
+    for city in cities:
+        address = city.name_en
+        longitude, latitude = client.searchLocation(address)
+        if longitude and latitude:
+            city.longitude = longitude
+            city.latitude = latitude
+            city.save()
 
 if __name__ == "__main__":
     normalizeDidaCountry()
     normalizeDidaCity()
     normalizeDidaHotel()
+
+    geocodeCountryLocation()
+    geocodeCityLocation()

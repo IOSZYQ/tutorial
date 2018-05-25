@@ -13,5 +13,7 @@ class DestinationUpdateFields:
             "countryCode"   : True,
             "json"          : True,
             "updated"       : True,
-            "created"       : True
+            "created"       : True,
+            "longitude"     : True,
+            "latitude"      : True
         }

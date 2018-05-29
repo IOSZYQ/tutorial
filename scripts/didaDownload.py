@@ -18,7 +18,6 @@ from Tutorial.models import Dida
 
 
 def _saveStaticData(dateStr, countryJson=None, cityJson=None, hotelCsv=None):
-    filePath = None
     fileName = None
     data = None
 

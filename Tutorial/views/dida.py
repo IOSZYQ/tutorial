@@ -43,3 +43,19 @@ class HotelUpdates(APIView):
             "dateFrom": dateFrom
         },fields=HotelUpdateFields.brief, start=start, count=count, last=last)["updates"]
         return viewResponse({"updates": hotelUpdates})
+
+
+class DestinationSync(APIView):
+    def put(self, request, format=None):
+        syncMap = request.data.get("syncMap")
+
+        destinationUpdateApi.update(syncMap=syncMap)
+        return viewResponse({})
+
+
+class HotelSync(APIView):
+    def put(self, request, format=None):
+        syncMap = request.data.get("syncMap")
+
+        hotelUpdateApi.update(syncMap=syncMap)
+        return viewResponse({})

@@ -1,10 +1,14 @@
 __author__ = "HanHui"
 
+import json
 import projectConfig
 
 from datetime import datetime
-from utilities import djangoUtils
-from Tutorial.models import DestinationUpdate
+from django.db import transaction
+from collections import OrderedDict
+from utilities import djangoUtils, utils
+
+from Tutorial.models import DestinationUpdate, Destination
 from Tutorial.serializers import DestinationUpdateSerializer
 
 
@@ -48,3 +52,42 @@ def read(**kwargs):
         "hasMore": hasMore,
         "updates": data
     }
+
+
+@transaction.atomic
+def update(**kwargs):
+    syncMap = kwargs.get("syncMap")
+    updateIds = [djangoUtils.decodeId(updateId) for updateId in syncMap.keys()]
+
+    destinationUpdates = {destinationUpdate.id: destinationUpdate for destinationUpdate in DestinationUpdate.objects.filter(pk__in=updateIds).all()}
+    for updateId in syncMap:
+        destinationUpdate = destinationUpdates[djangoUtils.decodeId(updateId)]
+
+        jsonData = json.loads(destinationUpdate.json)
+        name_cn = jsonData["name_cn"] if "name_cn" in jsonData else None
+        name_en = jsonData["name_en"] if "name_en" in jsonData else None
+        countryCode = jsonData["countryCode"] if "countryCode" in jsonData else None
+
+        destination = Destination.objects.filter(sourceId=destinationUpdate["sourceId"], source=destinationUpdate["source"]).first()
+        if not destination:
+            destination = Destination.objects.create(source=destinationUpdate["source"],
+                                                     sourceId=destinationUpdate["sourceId"],
+                                                     name_cn=name_cn,
+                                                     name_en=name_en,
+                                                     countryCode=countryCode,
+                                                     adminLevel=1 if destinationUpdate.sourceId is None else 2,
+                                                     tosId=djangoUtils.decodeId(syncMap[updateId]))
+        else:
+            if name_cn:
+                destination.name_cn = name_cn
+            if name_en:
+                destination.name_en = name_en
+            if countryCode:
+                destination.countryCode = countryCode
+        versionData = OrderedDict([
+            ("name_cn", name_cn),
+            ("name_en", name_en),
+            ("countryCode", countryCode)
+        ])
+        destination.version = utils.generateVersion(versionData)
+        destination.save()

@@ -211,29 +211,29 @@ def normalizeDidaHotel():
 
 
 def geocodeCountryLocation():
-    countries = DestinationUpdate.objects.filter(sourceId__isnull=True).order_by("id")
+    countryUpdates = DestinationUpdate.objects.filter(sourceId__isnull=True).order_by("id")
     client = GoogleMapClient()
 
-    for country in countries:
-        address = country.name_en
-        longitude, latitude = client.searchLocation(address)
+    for countryUpdate in countryUpdates:
+        jsonData = json.loads(countryUpdate.json)
+        longitude, latitude = client.searchLocation(jsonData["name_en"])
         if longitude and latitude:
-            country.longitude = longitude
-            country.latitude = latitude
-            country.save()
+            countryUpdate.longitude = longitude
+            countryUpdate.latitude = latitude
+            countryUpdate.save()
 
 
 def geocodeCityLocation():
-    cities = DestinationUpdate.objects.filter(sourceId__isnull=False).order_by("id")
+    cityUpdates = DestinationUpdate.objects.filter(sourceId__isnull=False).order_by("id")
     client = GoogleMapClient()
 
-    for city in cities:
-        address = city.name_en
-        longitude, latitude = client.searchLocation(address)
+    for cityUpdate in cityUpdates:
+        jsonData = json.loads(cityUpdate.json)
+        longitude, latitude = client.searchLocation(jsonData["name_en"])
         if longitude and latitude:
-            city.longitude = longitude
-            city.latitude = latitude
-            city.save()
+            cityUpdate.longitude = longitude
+            cityUpdate.latitude = latitude
+            cityUpdate.save()
 
 if __name__ == "__main__":
     normalizeDidaCountry()

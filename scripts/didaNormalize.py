@@ -19,7 +19,6 @@ from Tutorial.models import Destination, Dida, DestinationUpdate, Hotel, HotelUp
 def _generateCountryUpdate(destination, data, newVersion):
     name_cn = data["name_cn"]
     name_en = data["name_en"]
-    countryCode = data["countryCode"]
 
     if not destination:
         return data
@@ -29,8 +28,6 @@ def _generateCountryUpdate(destination, data, newVersion):
             update.update({"name_cn": name_cn})
         if name_en != destination.name_en:
             update.update({"name_en": name_en})
-        if countryCode != destination.countryCode:
-            update.update({"countryCode": countryCode})
         return update
     else:
         return None
@@ -39,9 +36,6 @@ def _generateCountryUpdate(destination, data, newVersion):
 def _generateCityUpdate(destination, data, newVersion):
     name_cn = data["name_cn"]
     name_en = data["name_en"]
-    countryCode = data["countryCode"]
-    parentId = data["parentId"]
-    sourceId = data["sourceId"]
 
     if not destination:
         return dict(data)
@@ -51,12 +45,6 @@ def _generateCityUpdate(destination, data, newVersion):
             update.update({"name_cn": name_cn})
         if name_en != destination.name_en:
             update.update({"name_en": name_en})
-        if countryCode != destination.countryCode:
-            update.update({"countryCode": countryCode})
-        if parentId != destination.parentId:
-            update.update({"parentId": parentId})
-        if sourceId != destination.sourceId:
-            update.update({"sourceId": sourceId})
         return update
     else:
         return None
@@ -65,7 +53,6 @@ def _generateCityUpdate(destination, data, newVersion):
 def _generateHotelUpdate(hotel, data, newVersion):
     name_cn = data["name_cn"]
     name_en = data["name_en"]
-    sourceId = data["sourceId"]
     address = data["address"]
     cityId = data["cityId"]
     zipCode = data["zipCode"]
@@ -82,8 +69,6 @@ def _generateHotelUpdate(hotel, data, newVersion):
             update.update({"name_cn": name_cn})
         if name_en != hotel.name_en:
             update.update({"name_en": name_en})
-        if sourceId != hotel.sourceId:
-            update.update({"sourceId": sourceId})
         if address != hotel.address:
             update.update({"address": address})
         if cityId != hotel.cityId:
@@ -139,13 +124,12 @@ def normalizeDidaCity():
         name_en = city["CityName"]
         name_cn = city["CityName_CN"] if "CityName_CN" in city else None
         sourceId = city["CityCode"]
-        parentId = city["ParentCityCode"] if "ParentCityCode" in city else None
+        parentCityCode = city["ParentCityCode"] if "ParentCityCode" in city else None
+        if parentCityCode == sourceId:
+            parentCityCode = None
         countryCode = city["CountryCode"]
         data = collections.OrderedDict([("name_cn", name_cn),
-                                        ("name_en", name_en),
-                                        ("countryCode", countryCode),
-                                        ("sourceId", sourceId),
-                                        ("parentId", parentId)])
+                                        ("name_en", name_en)])
         newVersion = generateVersion(data)
 
         destination = Destination.objects.filter(sourceId=sourceId, source="dida").first()
@@ -154,7 +138,7 @@ def normalizeDidaCity():
         if update:
             destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId).first()
             if not destinationUpdate:
-                DestinationUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, source="dida", json=json.dumps(update))
+                DestinationUpdate.objects.create(sourceId=sourceId, parentCityCode=parentCityCode, countryCode=countryCode, source="dida", json=json.dumps(update))
             else:
                 destinationUpdate.data = json.dumps(update)
                 destinationUpdate.save()
@@ -188,7 +172,6 @@ def normalizeDidaHotel():
 
         data = collections.OrderedDict([("name_cn", name_cn),
                                         ("name_en", name_en),
-                                        ("sourceId", sourceId),
                                         ("address", address),
                                         ("cityId", cityId),
                                         ("zipCode", zipCode),
@@ -210,35 +193,23 @@ def normalizeDidaHotel():
                 hotelUpdate.save()
 
 
-def geocodeCountryLocation():
-    countryUpdates = DestinationUpdate.objects.filter(sourceId__isnull=True).order_by("id")
+def geocodeLocation():
+    destinationUpdates = DestinationUpdate.objects.filter(longitude__isnull=True,
+                                                          latitude__isnull=True).order_by("id")
     client = GoogleMapClient()
 
-    for countryUpdate in countryUpdates:
-        jsonData = json.loads(countryUpdate.json)
+    for destinationUpdate in destinationUpdates:
+        print(destinationUpdate.id)
+        jsonData = json.loads(destinationUpdate.json)
         longitude, latitude = client.searchLocation(jsonData["name_en"])
         if longitude and latitude:
-            countryUpdate.longitude = longitude
-            countryUpdate.latitude = latitude
-            countryUpdate.save()
-
-
-def geocodeCityLocation():
-    cityUpdates = DestinationUpdate.objects.filter(sourceId__isnull=False).order_by("id")
-    client = GoogleMapClient()
-
-    for cityUpdate in cityUpdates:
-        jsonData = json.loads(cityUpdate.json)
-        longitude, latitude = client.searchLocation(jsonData["name_en"])
-        if longitude and latitude:
-            cityUpdate.longitude = longitude
-            cityUpdate.latitude = latitude
-            cityUpdate.save()
+            destinationUpdate.longitude = longitude
+            destinationUpdate.latitude = latitude
+            destinationUpdate.save()
 
 if __name__ == "__main__":
-    normalizeDidaCountry()
-    normalizeDidaCity()
-    normalizeDidaHotel()
+    # normalizeDidaCountry()
+    # normalizeDidaCity()
+    # normalizeDidaHotel()
 
-    geocodeCountryLocation()
-    geocodeCityLocation()
+    geocodeLocation()

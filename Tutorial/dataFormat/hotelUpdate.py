@@ -10,6 +10,7 @@ class HotelUpdateFields:
             "id"            : True,
             "source"        : True,
             "sourceId"      : True,
+            "tosId"         : True,
             "json"          : True,
             "updated"       : True,
             "created"       : True

@@ -14,7 +14,7 @@ def read(**kwargs):
     start = kwargs.get("start")
     count = kwargs.get("count")
 
-    city = Destination.objects.filter(destId=djangoUtils.decodeId(cityId), adminLevel=2).first()
+    city = Destination.objects.filter(tosId=djangoUtils.decodeId(cityId), adminLevel=2).first()
     if not city:
         return []
 
@@ -36,4 +36,4 @@ def read(**kwargs):
              "price": hotelDict[hotel.sourceId]["LowestPrice"]["Value"],
              "currency": hotelDict[hotel.sourceId]["LowestPrice"]["Currency"],
              "sourceId": hotel.sourceId,
-             "poiId": hotel.poiId} for hotel in hotels]
+             "tosId": djangoUtils.encodeId(hotel.tosId)} for hotel in hotels]

@@ -15,7 +15,7 @@ class Hotel(models.Model):
     zipCode        = models.CharField(max_length=32, null=True)
     latitude       = models.FloatField(null=True)
     longitude      = models.FloatField(null=True)
-    geohash8       = models.CharField(max_length=16, db_index=True)
+    geohash8       = models.CharField(max_length=16, null=True)
     starRating     = models.CharField(max_length=32)
     telephone      = models.CharField(max_length=128, null=True)
     amenity        = models.TextField(null=True)

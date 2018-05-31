@@ -26,10 +26,12 @@ class HotelFind(APIView):
 class DestinationUpdates(APIView):
     def get(self, request, format=None):
         dateFrom = request.GET.get("dateFrom", None)
+        country = request.GET.get("country", None)
         last, start, count = getPagePosition(request)
 
         destinationUpdates = destinationUpdateApi.read(query={
-            "dateFrom": dateFrom
+            "dateFrom": dateFrom,
+            "country": country
         }, fields=DestinationUpdateFields.brief, start=start, count=count, last=last)["updates"]
         return viewResponse({"updates": destinationUpdates})
 

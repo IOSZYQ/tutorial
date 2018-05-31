@@ -4,9 +4,9 @@ import projectConfig
 
 from django.utils import timezone
 
-from utilities import DataSerializer
+from utilities import DataSerializer, djangoUtils
 
-from ..models import HotelUpdate
+from ..models import HotelUpdate, Hotel
 
 
 class HotelUpdateSerializer(DataSerializer):
@@ -23,3 +23,11 @@ class HotelUpdateSerializer(DataSerializer):
 
     def updated(self, fields=None):
         return timezone.localtime(self._hotelUpdate.updated).strftime(projectConfig.DATE_TIME_FORMAT)
+
+    def tosId(self, fields=None):
+        hotel = Hotel.objects.filter(sourceId=self._hotelUpdate.sourceId,
+                                     source=self._hotelUpdate.source).first()
+        if hotel and hotel.tosId:
+            return djangoUtils.encodeId(hotel.tosId)
+        else:
+            return None

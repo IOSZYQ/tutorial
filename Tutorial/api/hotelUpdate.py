@@ -67,28 +67,61 @@ def update(**kwargs):
         jsonData = json.loads(hotelUpdate.json)
         name_cn = jsonData["name_cn"] if "name_cn" in jsonData else None
         name_en = jsonData["name_en"] if "name_en" in jsonData else None
-        countryCode = jsonData["countryCode"] if "countryCode" in jsonData else None
+        cityId = jsonData["cityId"] if "cityId" in jsonData else None
+        address = jsonData["address"] if "address" in jsonData else None
+        zipCode = jsonData["zipCode"] if "zipCode" in jsonData else None
+        latitude = jsonData["latitude"] if "latitude" in jsonData else None
+        longitude = jsonData["longitude"] if "longitude" in jsonData else None
+        geohash8 = jsonData["geohash8"] if "geohash8" in jsonData else None
+        starRating = jsonData["starRating"] if "starRating" in jsonData else None
+        telephone = jsonData["telephone"] if "telephone" in jsonData else None
+        amenity = jsonData["amenity"] if "amenity" in jsonData else None
+        rooms = jsonData["rooms"] if "rooms" in jsonData else None
 
-        hotel = Hotel.objects.filter(sourceId=hotelUpdate["sourceId"], source=hotelUpdate["source"]).first()
+        hotel = Hotel.objects.filter(sourceId=hotelUpdate.sourceId, source=hotelUpdate.source).first()
         if not hotel:
-            hotel = Hotel.objects.create(source=hotelUpdate["source"],
-                                         sourceId=hotelUpdate["sourceId"],
+            hotel = Hotel.objects.create(source=hotelUpdate.source,
+                                         sourceId=hotelUpdate.sourceId,
                                          name_cn=name_cn,
                                          name_en=name_en,
-                                         countryCode=countryCode,
-                                         adminLevel=1 if hotelUpdate.sourceId is None else 2,
+                                         cityId=cityId,
+                                         address=address,
+                                         latitude=latitude,
+                                         longitude=longitude,
+                                         geohash8=geohash8,
+                                         telephone=telephone,
+                                         starRating=starRating,
+                                         amenity=amenity,
+                                         rooms=rooms,
                                          tosId=djangoUtils.decodeId(syncMap[updateId]))
         else:
             if name_cn:
                 hotel.name_cn = name_cn
             if name_en:
                 hotel.name_en = name_en
-            if countryCode:
-                hotel.countryCode = countryCode
-        versionData = OrderedDict([
-            ("name_cn", name_cn),
-            ("name_en", name_en),
-            ("countryCode", countryCode)
-        ])
+            if address:
+                hotel.address = address
+            if cityId:
+                hotel.cityId = cityId
+            if zipCode:
+                hotel.zipCode = zipCode
+            if longitude:
+                hotel.longitude = longitude
+            if latitude:
+                hotel.latitude = latitude
+            if starRating:
+                hotel.starRating = starRating
+            if telephone:
+                hotel.telephone = telephone
+
+        versionData = OrderedDict([("name_cn", name_cn),
+                                   ("name_en", name_en),
+                                   ("address", address),
+                                   ("cityId", cityId),
+                                   ("zipCode", zipCode),
+                                   ("longitude", longitude),
+                                   ("latitude", latitude),
+                                   ("starRating", starRating),
+                                   ("telephone", telephone)])
         hotel.version = utils.generateVersion(versionData)
         hotel.save()

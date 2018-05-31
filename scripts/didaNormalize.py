@@ -2,6 +2,7 @@ __author__ = 'HanHui'
 
 import os
 import sys
+import time
 import json
 import django
 import collections
@@ -138,7 +139,7 @@ def normalizeDidaCity():
         if update:
             destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId).first()
             if not destinationUpdate:
-                DestinationUpdate.objects.create(sourceId=sourceId, parentCityCode=parentCityCode, countryCode=countryCode, source="dida", json=json.dumps(update))
+                DestinationUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, source="dida", json=json.dumps(update))
             else:
                 destinationUpdate.data = json.dumps(update)
                 destinationUpdate.save()
@@ -206,10 +207,11 @@ def geocodeLocation():
             destinationUpdate.longitude = longitude
             destinationUpdate.latitude = latitude
             destinationUpdate.save()
+        time.sleep(1)
 
 if __name__ == "__main__":
-    # normalizeDidaCountry()
-    # normalizeDidaCity()
-    # normalizeDidaHotel()
+    normalizeDidaCountry()
+    normalizeDidaCity()
+    normalizeDidaHotel()
 
     geocodeLocation()

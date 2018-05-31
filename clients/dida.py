@@ -80,5 +80,4 @@ class DidaClient(object):
             })
         if filterList:
             params.update({"FilterList": filterList})
-
         return self._fetchData('/api/rate/pricesearch?$format=json', params=params)

@@ -32,8 +32,7 @@ def read(**kwargs):
 
     hotels = Hotel.objects.filter(sourceId__in=hotelDict.keys()).all()
     hotels = {hotel.sourceId: hotel for hotel in hotels}
-    return [{"name_cn": hotels[sourceId].name_cn if sourceId in hotels else None,
-             "name_en": hotels[sourceId].name_en if sourceId in hotels else None,
+    return [{"name": hotelDict[sourceId]["HotelName"],
              "price": hotelDict[sourceId]["LowestPrice"]["Value"],
              "currency": hotelDict[sourceId]["LowestPrice"]["Currency"],
              "sourceId": sourceId,

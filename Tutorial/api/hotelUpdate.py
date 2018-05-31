@@ -113,6 +113,7 @@ def update(**kwargs):
                 hotel.starRating = starRating
             if telephone:
                 hotel.telephone = telephone
+            hotel.tosId = djangoUtils.decodeId(syncMap[updateId])
 
         versionData = OrderedDict([("name_cn", name_cn),
                                    ("name_en", name_en),

@@ -85,6 +85,7 @@ def update(**kwargs):
                 destination.name_cn = name_cn
             if name_en:
                 destination.name_en = name_en
+            destination.tosId = djangoUtils.decodeId(syncMap[updateId])
         versionData = OrderedDict([
             ("name_cn", name_cn),
             ("name_en", name_en),

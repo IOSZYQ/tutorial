@@ -21,8 +21,8 @@ PKFARE_PARTNERKEY="ODQ1ZjY5OTZlNGU2MTg0ZGRjZDM2ODliZjNkOWIyMjI="
 PKFARE_URL = "http://open.pkfare.com/apitest/shopping"
 
 # dida
-DIDA_CLIENT_ID = "DidaApiTestID"
-DIDA_LICENSE_KEY = "TestKey"
+DIDA_CLIENT_ID = "LUSHU_API"
+DIDA_LICENSE_KEY = "LUSHU_API"
 DIDA_URL = "http://api.didatravel.com"
 
 # 51book

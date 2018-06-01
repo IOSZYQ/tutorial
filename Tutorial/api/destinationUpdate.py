@@ -24,7 +24,7 @@ def read(**kwargs):
         hasMore = False
         destinationUpdates = DestinationUpdate.objects.filter(pk__in=updateIds)
     else:
-        destinationUpdates = DestinationUpdate.objects.all()
+        destinationUpdates = DestinationUpdate.objects.filter(tosId__isnull=False)
         country = query.get("country", None)
 
         last = kwargs.get("last", None)

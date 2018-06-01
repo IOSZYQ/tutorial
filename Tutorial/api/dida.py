@@ -1,7 +1,7 @@
 __author__ = "HanHui"
 
 from clients import DidaClient
-from utilities import djangoUtils
+from utilities import djangoUtils, utils
 from Tutorial.models import Destination, Hotel
 
 
@@ -34,6 +34,6 @@ def read(**kwargs):
     hotels = {hotel.sourceId: hotel for hotel in hotels}
     return [{"name": hotelDict[sourceId]["HotelName"],
              "price": hotelDict[sourceId]["LowestPrice"]["Value"],
-             "currency": hotelDict[sourceId]["LowestPrice"]["Currency"],
+             "currency": utils.getCurrencyCode(hotelDict[sourceId]["LowestPrice"]["Currency"]),
              "sourceId": sourceId,
              "tosId": djangoUtils.encodeId(hotels[sourceId].tosId) if sourceId in hotels and hotels[sourceId].tosId else None} for sourceId in hotelDict]

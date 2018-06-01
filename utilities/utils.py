@@ -11,6 +11,34 @@ adtwLogger = logging.getLogger("ADTW")
 
 REQUEST_TIMEOUT = 60
 
+CURRENCY_MAP = {
+    "cny": 0,
+    "usd": 1,
+    "aud": 2,
+    "cad": 3,
+    "hkd": 4,
+    "gbp": 5,
+    "eur": 6,
+    "jpy": 7,
+    "nzd": 8,
+    "sgd": 9,
+    "thb": 10,
+    "krw": 11,
+    "twd": 12,
+    "chf": 13,
+    "sek": 14,
+    "dkk": 15,
+    "rub": 16,
+    "nok": 17,
+    "php": 18,
+    "mop": 19,
+    "idr": 20,
+    "brl": 21,
+    "aed": 22,
+    "inr": 23,
+    "zar": 24
+}
+
 
 def generateVersion(data):
     md5 = hashlib.md5()
@@ -24,6 +52,13 @@ def generateVersion(data):
 
     md5.update(dataStr.encode(encoding='utf-8'))
     return md5.hexdigest()
+
+
+def getCurrencyCode(currency):
+    if currency.lower() in CURRENCY_MAP:
+        return CURRENCY_MAP[currency.lower()]
+    else:
+        return None
 
 
 def extractData(oriData, fields=None):

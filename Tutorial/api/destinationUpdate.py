@@ -24,7 +24,7 @@ def read(**kwargs):
         hasMore = False
         destinationUpdates = DestinationUpdate.objects.filter(pk__in=updateIds)
     else:
-        destinationUpdates = DestinationUpdate.objects.filter(tosId__isnull=False)
+        destinationUpdates = DestinationUpdate.objects.filter(parentId__isnull=True)
         country = query.get("country", None)
 
         last = kwargs.get("last", None)
@@ -71,7 +71,9 @@ def update(**kwargs):
         name_cn = jsonData["name_cn"] if "name_cn" in jsonData else None
         name_en = jsonData["name_en"] if "name_en" in jsonData else None
 
-        destination = Destination.objects.filter(sourceId=destinationUpdate.sourceId, countryCode=destinationUpdate.countryCode, source=destinationUpdate.source).first()
+        destination = Destination.objects.filter(sourceId=destinationUpdate.sourceId,
+                                                 countryCode=destinationUpdate.countryCode,
+                                                 source="dida").first()
         if not destination:
             destination = Destination.objects.create(source=destinationUpdate.source,
                                                      sourceId=destinationUpdate.sourceId,

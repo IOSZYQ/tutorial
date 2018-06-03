@@ -31,6 +31,9 @@ class Hotel(models.Model):
 class HotelUpdate(models.Model):
     source          = models.CharField(max_length=32)
     sourceId        = models.IntegerField(unique=True)
+    cityId          = models.CharField(max_length=32, null=True)
+    latitude        = models.FloatField(null=True)
+    longitude       = models.FloatField(null=True)
     json            = models.TextField()
     created         = models.DateTimeField(auto_now_add=True)
     updated         = models.DateTimeField(auto_now=True)

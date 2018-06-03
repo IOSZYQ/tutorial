@@ -26,6 +26,7 @@ class Destination(models.Model):
 
 class DestinationUpdate(models.Model):
     source          = models.CharField(max_length=32)
+    parentId        = models.CharField(max_length=32, null=True)
     sourceId        = models.CharField(max_length=32, null=True)
     countryCode     = models.CharField(max_length=16, null=True)
     longitude       = models.FloatField(null=True)

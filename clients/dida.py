@@ -45,7 +45,7 @@ class DidaClient(object):
 
     def downCityList(self, countryCode):
         params = {
-          "IncludeSubCity": False,
+          "IncludeSubCity": True,
           "CountryCode": countryCode
         }
         return self._fetchData('/api/staticdata/GetCityList?$format=json', params=params)

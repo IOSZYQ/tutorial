@@ -5,6 +5,7 @@ import sys
 import time
 import json
 import django
+import argparse
 import collections
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -139,7 +140,7 @@ def normalizeDidaCity():
         if update:
             destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId).first()
             if not destinationUpdate:
-                DestinationUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, source="dida", json=json.dumps(update))
+                DestinationUpdate.objects.create(sourceId=sourceId, parentId=parentCityCode, countryCode=countryCode, source="dida", json=json.dumps(update))
             else:
                 destinationUpdate.data = json.dumps(update)
                 destinationUpdate.save()
@@ -186,32 +187,73 @@ def normalizeDidaHotel():
         update = _generateHotelUpdate(hotel, data, newVersion)
 
         if update:
-            hotelUpdate = HotelUpdate.objects.filter(sourceId=sourceId).first()
+            hotelUpdate = HotelUpdate.objects.filter(source="dida", sourceId=sourceId).first()
             if not hotelUpdate:
-                HotelUpdate.objects.create(sourceId=sourceId, source="dida", json=json.dumps(update))
+                HotelUpdate.objects.create(sourceId=sourceId, longitude=longitude, latitude=latitude, cityId=cityId, source="dida", json=json.dumps(update))
             else:
                 hotelUpdate.data = json.dumps(update)
                 hotelUpdate.save()
 
 
-def geocodeLocation():
+def gecodeLocationWithHotelInfo():
     destinationUpdates = DestinationUpdate.objects.filter(longitude__isnull=True,
-                                                          latitude__isnull=True).order_by("id")
-    client = GoogleMapClient()
-
+                                                          latitude__isnull=True,
+                                                          sourceId__isnull=False,
+                                                          parentId__isnull=True).order_by("id")
     for destinationUpdate in destinationUpdates:
-        print(destinationUpdate.id)
+        cityIds = DestinationUpdate.objects.filter(parentId=destinationUpdate.sourceId,
+                                                   source="dida").values_list("sourceId", flat=True)
+
+        cityIds = list(cityIds)
+        cityIds.append(destinationUpdate.sourceId)
+        hotels = HotelUpdate.objects.filter(cityId__in=cityIds, source="dida")
+        if not hotels:
+            continue
+
+        longitude = 0
+        latitude = 0
+        count = 0
+        for hotel in hotels:
+            longitude += hotel.longitude
+            latitude += hotel.latitude
+            count += 1
+        longitude = longitude / count
+        latitude = latitude / count
+        destinationUpdate.longitude = longitude
+        destinationUpdate.latitude = latitude
+        destinationUpdate.save()
+
+
+def geocodeLocationWithMapApi():
+    count = 0
+    destinationUpdates = DestinationUpdate.objects.filter(longitude__isnull=True,
+                                                          latitude__isnull=True,
+                                                          source="dida").order_by("id")
+
+    client = GoogleMapClient()
+    for destinationUpdate in destinationUpdates:
         jsonData = json.loads(destinationUpdate.json)
         longitude, latitude = client.searchLocation(jsonData["name_en"])
         if longitude and latitude:
             destinationUpdate.longitude = longitude
             destinationUpdate.latitude = latitude
             destinationUpdate.save()
+        count += 1
+        if count >= 2500:
+            break
         time.sleep(1)
 
 if __name__ == "__main__":
-    normalizeDidaCountry()
-    normalizeDidaCity()
-    normalizeDidaHotel()
+    parser = argparse.ArgumentParser(conflict_handler='resolve')
+    parser.add_argument("--norm", action="store_true", help="normalize all")
+    parser.add_argument("--gecode", action="store_true", help="gecode cities")
 
-    geocodeLocation()
+    args = parser.parse_args()
+    if args.norm:
+        normalizeDidaCountry()
+        normalizeDidaCity()
+        normalizeDidaHotel()
+        gecodeLocationWithHotelInfo()
+
+    if args.gecode:
+        geocodeLocationWithMapApi()

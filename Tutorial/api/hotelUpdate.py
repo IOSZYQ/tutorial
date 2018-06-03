@@ -24,7 +24,7 @@ def read(**kwargs):
         hasMore = False
         hotelUpdates = HotelUpdate.objects.filter(pk__in=updateIds)
     else:
-        hotelUpdates = HotelUpdate.objects.filter(tosId__isnull=False)
+        hotelUpdates = HotelUpdate.objects.filter()
 
         last = kwargs.get("last", None)
         start = kwargs.get("start", 0)

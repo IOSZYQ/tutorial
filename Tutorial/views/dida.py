@@ -13,13 +13,12 @@ class HotelFind(APIView):
         checkOut = request.GET.get("checkOut", None)
         star = request.GET.get("star", None)
         city = request.GET.get("city", None)
-        start = request.GET.get("start", None)
-        count = request.GET.get("count", None)
+        last, start, count = getPagePosition(request)
 
         hotels = didaApi.read(query={"checkIn": checkIn,
                                      "checkOut": checkOut,
                                      "star": star,
-                                     "city": city}, start=start, count=count)
+                                     "city": city}, start=start, count=count, last=last)
         return viewResponse({"hotels": hotels})
 
 

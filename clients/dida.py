@@ -20,6 +20,7 @@ class DidaClient(object):
         headers = {
             "Accept-Encoding": "gzip"
         }
+        print(requestDict)
         r = requests.post(url=projectConfig.DIDA_URL+url, json=requestDict, headers=headers)
         if r.status_code != 200:
             raise Exception("post fail, url={0}, status={1}".format(url, r.status_code))
@@ -57,27 +58,11 @@ class DidaClient(object):
         }
         return self._fetchData('/api/staticdata/GetStaticInformation?$format=json', params=params)
 
-    def searchHotelPrices(self, checkIn, checkOut, cityCode, star, countPerPage, pageNum):
+    def searchHotelPrices(self, checkIn, checkOut, hotelList):
         params = {
             "CheckOutDate": checkOut,
             "CheckInDate": checkIn,
-            "Destination": {
-                "CityCode": cityCode
-            },
+            "HotelIDList": hotelList,
             "LowestPriceOnly": True
         }
-        filterList = {}
-        if star is not None:
-            filterList.update({
-                "StarRating": star
-            })
-        if countPerPage is not None and pageNum is not None:
-            filterList.update({
-                "Pagination": {
-                    "CountPerPage": countPerPage,
-                    "PageNum": pageNum
-                }
-            })
-        if filterList:
-            params.update({"FilterList": filterList})
         return self._fetchData('/api/rate/pricesearch?$format=json', params=params)

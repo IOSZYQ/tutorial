@@ -22,7 +22,6 @@ class Hotel(models.Model):
     rooms          = models.TextField(null=True)
     inactive       = models.BooleanField(default=False)
     created        = models.DateTimeField(auto_now_add=True)
-    public         = models.BooleanField(default=False)
 
     class Meta:
         app_label = "Tutorial"

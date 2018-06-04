@@ -246,14 +246,17 @@ def geocodeLocationWithMapApi():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(conflict_handler='resolve')
     parser.add_argument("--norm", action="store_true", help="normalize all")
-    parser.add_argument("--gecode", action="store_true", help="gecode cities")
+    parser.add_argument("--gecode1", action="store_true", help="gecode cities")
+    parser.add_argument("--gecode2", action="store_true", help="gecode cities")
 
     args = parser.parse_args()
     if args.norm:
         normalizeDidaCountry()
         normalizeDidaCity()
         normalizeDidaHotel()
+
+    if args.gecode1:
         gecodeLocationWithHotelInfo()
 
-    if args.gecode:
+    if args.gecode2:
         geocodeLocationWithMapApi()

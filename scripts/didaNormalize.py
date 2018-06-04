@@ -15,7 +15,7 @@ django.setup()
 from django.conf import settings
 from clients.map import GoogleMapClient
 from utilities.utils import generateVersion
-from Tutorial.models import Destination, Dida, DestinationUpdate, Hotel, HotelUpdate
+from Tutorial.models import Destination, Dida, DestinationUpdate, DestinationSubCity, Hotel, HotelUpdate
 
 
 def _generateCountryUpdate(destination, data, newVersion):
@@ -122,13 +122,20 @@ def normalizeDidaCity():
     cityFile = open(filePath, "r")
     cities = json.loads(cityFile.read())
 
+    subCityMap = {}
+    for city in cities:
+        sourceId = city["CityCode"]
+        parentCityCode = city["ParentCityCode"] if "ParentCityCode" in city else None
+        if parentCityCode != sourceId:
+            subCityMap.setdefault(parentCityCode, []).append(sourceId)
+
     for city in cities:
         name_en = city["CityName"]
         name_cn = city["CityName_CN"] if "CityName_CN" in city else None
         sourceId = city["CityCode"]
         parentCityCode = city["ParentCityCode"] if "ParentCityCode" in city else None
-        if parentCityCode == sourceId:
-            parentCityCode = None
+        if parentCityCode != sourceId:
+            continue
         countryCode = city["CountryCode"]
         data = collections.OrderedDict([("name_cn", name_cn),
                                         ("name_en", name_en)])
@@ -140,7 +147,13 @@ def normalizeDidaCity():
         if update:
             destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId).first()
             if not destinationUpdate:
-                DestinationUpdate.objects.create(sourceId=sourceId, parentId=parentCityCode, countryCode=countryCode, source="dida", json=json.dumps(update))
+                destinationUpdate = DestinationUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, source="dida", json=json.dumps(update))
+                subCities = []
+                if sourceId in subCityMap:
+                    for subCityCode in subCityMap[sourceId]:
+                        subCities.append(DestinationSubCity(update=destinationUpdate, cityId=subCityCode))
+                if subCities:
+                    DestinationSubCity.objects.bulk_create(subCities)
             else:
                 destinationUpdate.data = json.dumps(update)
                 destinationUpdate.save()
@@ -198,29 +211,19 @@ def normalizeDidaHotel():
 def gecodeLocationWithHotelInfo():
     destinationUpdates = DestinationUpdate.objects.filter(longitude__isnull=True,
                                                           latitude__isnull=True,
-                                                          sourceId__isnull=False,
-                                                          parentId__isnull=True).order_by("id")
+                                                          sourceId__isnull=False).order_by("id")
     for destinationUpdate in destinationUpdates:
-        cityIds = DestinationUpdate.objects.filter(parentId=destinationUpdate.sourceId,
-                                                   source="dida").values_list("sourceId", flat=True)
+        print(destinationUpdate.id)
+        cityIds = DestinationSubCity.objects.filter(update=destinationUpdate).values_list("cityId", flat=True)
 
         cityIds = list(cityIds)
         cityIds.append(destinationUpdate.sourceId)
-        hotels = HotelUpdate.objects.filter(cityId__in=cityIds, source="dida")
-        if not hotels:
+        hotel = HotelUpdate.objects.filter(cityId__in=cityIds, source="dida").first()
+        if not hotel:
             continue
 
-        longitude = 0
-        latitude = 0
-        count = 0
-        for hotel in hotels:
-            longitude += hotel.longitude
-            latitude += hotel.latitude
-            count += 1
-        longitude = longitude / count
-        latitude = latitude / count
-        destinationUpdate.longitude = longitude
-        destinationUpdate.latitude = latitude
+        destinationUpdate.longitude = hotel.longitude
+        destinationUpdate.latitude = hotel.latitude
         destinationUpdate.save()
 
 
@@ -232,6 +235,7 @@ def geocodeLocationWithMapApi():
 
     client = GoogleMapClient()
     for destinationUpdate in destinationUpdates:
+        print(destinationUpdate.id)
         jsonData = json.loads(destinationUpdate.json)
         longitude, latitude = client.searchLocation(jsonData["name_en"])
         if longitude and latitude:
@@ -245,18 +249,20 @@ def geocodeLocationWithMapApi():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(conflict_handler='resolve')
-    parser.add_argument("--norm", action="store_true", help="normalize all")
+    parser.add_argument("--country", action="store_true", help="normalize countries")
+    parser.add_argument("--city", action="store_true", help="normalize cities")
+    parser.add_argument("--hotel", action="store_true", help="normalize hotels")
     parser.add_argument("--gecode1", action="store_true", help="gecode cities")
     parser.add_argument("--gecode2", action="store_true", help="gecode cities")
 
     args = parser.parse_args()
-    if args.norm:
+    if args.country:
         normalizeDidaCountry()
+    if args.city:
         normalizeDidaCity()
+    if args.hotel:
         normalizeDidaHotel()
-
     if args.gecode1:
         gecodeLocationWithHotelInfo()
-
     if args.gecode2:
         geocodeLocationWithMapApi()

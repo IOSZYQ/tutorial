@@ -9,22 +9,6 @@ import elasticUtils, elasticInlines
 
 
 def _hotelDoc(hotel, fields=None):
-    if fields == None:
-        fields = {
-            "name_en"           : True,
-            "name_cn"           : True,
-            "source"            : True,
-            "sourceId"          : True,
-            "tosId"             : True,
-            "cityId"            : True,
-            "address"           : True,
-            "latitude"          : True,
-            "longitude"         : True,
-            "starRating"        : True,
-            "telephone"         : True,
-            "created"           : True
-        }
-
     hotelDoc = {
         "name_en"           : hotel.name_en,
         "name_cn"           : hotel.name_cn,
@@ -33,8 +17,7 @@ def _hotelDoc(hotel, fields=None):
         "tosId"             : hotel.tosId,
         "cityId"            : hotel.cityId,
         "address"           : hotel.address,
-        "latitude"          : hotel.latitude,
-        "longitude"         : hotel.longitude,
+        "location"          : {"lat": hotel.latitude, "lon": hotel.longitude} if hotel.latitude and hotel.longitude else None,
         "starRating"        : hotel.starRating,
         "created"           : hotel.created
     }
@@ -65,7 +48,7 @@ def updateHotel(hotels, updatedFields):
         try:
             helpers.bulk(es, actions)
         except:
-            indexPoi(hotels)
+            indexHotel(hotels)
 
 
 def indexHotel(hotels):
@@ -135,9 +118,8 @@ def searchHotels(start=0, count=10, latitude=None, longitude=None, distance=1000
     }
 
     filters = []
-    locFilters = []
     if latitude != None and longitude != None and distance > 0:
-        locFilters.append({
+        filters.append({
             "geo_distance": {
                 "location": {
                     "lat": latitude,
@@ -152,6 +134,5 @@ def searchHotels(start=0, count=10, latitude=None, longitude=None, distance=1000
     highlight = {
         "fields" : { field:{} for field in highlightFields }
     } if highlightFields and q else None
-
 
     return elasticUtils.doSearch(hotelQuery, start, count, order, "lushu_hotels", "hotel", highlight=highlight)

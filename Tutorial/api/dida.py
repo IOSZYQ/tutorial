@@ -28,12 +28,12 @@ def read(**kwargs):
 
     client = DidaClient()
     hotels = client.searchHotelPrices(checkIn, checkOut, str(city.sourceId), star, countPerPage, pageNum)
-    hotelDict = {hotel["HotelID"]: hotel for hotel in hotels}
+    hotelDict = {str(hotel["HotelID"]): hotel for hotel in hotels}
 
     hotels = Hotel.objects.filter(sourceId__in=hotelDict.keys()).all()
-    hotels = {hotel.sourceId: hotel for hotel in hotels}
+    tosIdMap = {hotel.sourceId: hotel.tosId for hotel in hotels}
     return [{"name": hotelDict[sourceId]["HotelName"],
              "price": hotelDict[sourceId]["LowestPrice"]["Value"],
              "currency": utils.getCurrencyCode(hotelDict[sourceId]["LowestPrice"]["Currency"]),
              "sourceId": sourceId,
-             "tosId": djangoUtils.encodeId(hotels[sourceId].tosId) if sourceId in hotels and hotels[sourceId].tosId else None} for sourceId in hotelDict]
+             "tosId": djangoUtils.encodeId(tosIdMap[sourceId]) if sourceId in tosIdMap else None} for sourceId in hotelDict]

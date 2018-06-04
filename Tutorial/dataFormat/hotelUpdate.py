@@ -13,5 +13,7 @@ class HotelUpdateFields:
             "tosId"         : True,
             "json"          : True,
             "updated"       : True,
-            "created"       : True
+            "created"       : True,
+            "countryId"     : True,
+            "cityId"        : True
         }

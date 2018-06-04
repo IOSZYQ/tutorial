@@ -5,7 +5,7 @@ from django.db import models
 
 class Hotel(models.Model):
     source         = models.CharField(max_length=32)
-    sourceId       = models.IntegerField(unique=True)
+    sourceId       = models.CharField(max_length=32)
     version        = models.CharField(max_length=64, null=True)
     tosId          = models.IntegerField(null=True)
     cityId         = models.CharField(max_length=32)

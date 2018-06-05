@@ -21,11 +21,17 @@ def read(**kwargs):
 
     destination = Destination.objects.filter(tosId=djangoUtils.decodeId(cityId), source="dida").first()
     if not destination:
-        return []
+        return {
+            "priceList": [],
+            "hasMore": False
+        }
 
     destinationUpdate = DestinationUpdate.objects.filter(sourceId=destination.sourceId, source="dida").first()
     if not destinationUpdate or not destinationUpdate.longitude or not destinationUpdate.latitude:
-        return []
+        return {
+            "priceList": [],
+            "hasMore": False
+        }
 
     def doSearchHotels(fetchStart, fetchTripCnt):
         return searchHotels(fetchStart, fetchTripCnt, longitude=destinationUpdate.longitude, latitude=destinationUpdate.latitude, distance=30000)
@@ -38,8 +44,10 @@ def read(**kwargs):
     hotels = client.searchHotelPrices(checkIn, checkOut, hotelList=[int(hotel.sourceId) for hotel in hotels])
     hotelDict = {str(hotel["HotelID"]): hotel for hotel in hotels}
 
-    return [{"name": hotelDict[sourceId]["HotelName"],
-             "price": hotelDict[sourceId]["LowestPrice"]["Value"],
-             "currency": utils.getCurrencyCode(hotelDict[sourceId]["LowestPrice"]["Currency"]),
-             "sourceId": sourceId,
-             "tosId": djangoUtils.encodeId(tosIdMap[sourceId]) if sourceId in tosIdMap else None} for sourceId in hotelDict]
+    hotelPrices = [{"price": hotelDict[sourceId]["LowestPrice"]["Value"],
+                    "currency": utils.getCurrencyCode(hotelDict[sourceId]["LowestPrice"]["Currency"]),
+                    "tosId": djangoUtils.encodeId(tosIdMap[sourceId]) if sourceId in tosIdMap else None} for sourceId in hotelDict]
+    return {
+        "priceList": hotelPrices,
+        "hasMore": hasMore
+    }

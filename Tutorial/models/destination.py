@@ -7,6 +7,8 @@ class Destination(models.Model):
     source         = models.CharField(max_length=32)
     sourceId       = models.CharField(max_length=32, null=True)
     version        = models.CharField(max_length=64, null=True)
+    longitude      = models.FloatField(null=True)
+    latitude       = models.FloatField(null=True)
     tosId          = models.IntegerField(null=True)
     countryCode    = models.CharField(max_length=16, null=True)
     adminLevel     = models.IntegerField()

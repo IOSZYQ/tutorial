@@ -79,6 +79,8 @@ def update(**kwargs):
                                                      sourceId=destinationUpdate.sourceId,
                                                      name_cn=name_cn,
                                                      name_en=name_en,
+                                                     longitude=destinationUpdate.longitude,
+                                                     latitude=destinationUpdate.latitude,
                                                      countryCode=destinationUpdate.countryCode,
                                                      adminLevel=1 if destinationUpdate.sourceId is None else 2,
                                                      tosId=djangoUtils.decodeId(syncMap[updateId]))

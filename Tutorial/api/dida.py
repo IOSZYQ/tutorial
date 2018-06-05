@@ -4,7 +4,7 @@ import apiUtils
 
 from clients import DidaClient
 from utilities import djangoUtils, utils
-from Tutorial.models import DestinationUpdate, Destination, Hotel
+from Tutorial.models import Destination, Hotel
 from Tutorial.elastic import searchHotels
 
 
@@ -26,15 +26,8 @@ def read(**kwargs):
             "hasMore": False
         }
 
-    destinationUpdate = DestinationUpdate.objects.filter(sourceId=destination.sourceId, source="dida").first()
-    if not destinationUpdate or not destinationUpdate.longitude or not destinationUpdate.latitude:
-        return {
-            "priceList": [],
-            "hasMore": False
-        }
-
     def doSearchHotels(fetchStart, fetchTripCnt):
-        return searchHotels(fetchStart, fetchTripCnt, longitude=destinationUpdate.longitude, latitude=destinationUpdate.latitude, distance=30000)
+        return searchHotels(fetchStart, fetchTripCnt, longitude=destination.longitude, latitude=destination.latitude, distance=30000)
 
     hotelIds, hasMore, highlights, total = apiUtils.searchWithHighlights(last, start, count, doSearchHotels)
     hotels = Hotel.objects.filter(pk__in=hotelIds).all()

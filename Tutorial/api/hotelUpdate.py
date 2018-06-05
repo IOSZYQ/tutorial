@@ -8,6 +8,7 @@ from utilities import djangoUtils, utils
 from django.db import transaction
 from collections import OrderedDict
 
+from Tutorial.elastic import indexHotel
 from Tutorial.models import HotelUpdate, Hotel
 from Tutorial.serializers import HotelUpdateSerializer
 
@@ -126,3 +127,4 @@ def update(**kwargs):
                                    ("telephone", telephone)])
         hotel.version = utils.generateVersion(versionData)
         hotel.save()
+        indexHotel(hotel)

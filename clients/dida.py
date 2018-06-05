@@ -20,7 +20,7 @@ class DidaClient(object):
         headers = {
             "Accept-Encoding": "gzip"
         }
-        print(requestDict)
+
         r = requests.post(url=projectConfig.DIDA_URL+url, json=requestDict, headers=headers)
         if r.status_code != 200:
             raise Exception("post fail, url={0}, status={1}".format(url, r.status_code))

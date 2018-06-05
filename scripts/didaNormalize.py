@@ -175,6 +175,7 @@ def normalizeDidaHotel():
         name_cn = items[2]
         address = items[3]
         cityId = items[4]
+        countryCode = items[8]
         zipCode = items[11]
         longitude = float(items[12]) if items[12] else None
         latitude = float(items[13]) if items[13] else None
@@ -202,7 +203,7 @@ def normalizeDidaHotel():
         if update:
             hotelUpdate = HotelUpdate.objects.filter(source="dida", sourceId=sourceId).first()
             if not hotelUpdate:
-                HotelUpdate.objects.create(sourceId=sourceId, longitude=longitude, latitude=latitude, cityId=cityId, source="dida", json=json.dumps(update))
+                HotelUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, longitude=longitude, latitude=latitude, cityId=cityId, source="dida", json=json.dumps(update))
             else:
                 hotelUpdate.data = json.dumps(update)
                 hotelUpdate.save()

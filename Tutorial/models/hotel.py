@@ -31,6 +31,7 @@ class HotelUpdate(models.Model):
     source          = models.CharField(max_length=32)
     sourceId        = models.IntegerField(unique=True)
     cityId          = models.CharField(max_length=32, null=True)
+    countryCode     = models.CharField(max_length=16, null=True)
     latitude        = models.FloatField(null=True)
     longitude       = models.FloatField(null=True)
     json            = models.TextField()

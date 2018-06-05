@@ -33,23 +33,15 @@ class HotelUpdateSerializer(DataSerializer):
             return None
 
     def countryId(self, fields=None):
-        hotel = Hotel.objects.filter(sourceId=self._hotelUpdate.sourceId,
-                                     source=self._hotelUpdate.source).first()
-        destination = Destination.objects.filter(sourceId=hotel.cityId, source=hotel.source).first()
-        if not destination:
-            return None
-
-        destination = Destination.objects.filter(countryCode=destination.countryCode,
+        destination = Destination.objects.filter(countryCode=self._hotelUpdate.countryCode,
                                                  sourceId__isnull=True,
-                                                 source=hotel.source).first()
+                                                 source=self._hotelUpdate.source).first()
         if not destination:
             return None
         return destination.tosId
 
     def cityId(self, fields=None):
-        hotel = Hotel.objects.filter(sourceId=self._hotelUpdate.sourceId,
-                                     source=self._hotelUpdate.source).first()
-        destination = Destination.objects.filter(sourceId=hotel.cityId, source=hotel.source).first()
+        destination = Destination.objects.filter(sourceId=self._hotelUpdate.cityId, source=self._hotelUpdate.source).first()
         if not destination:
             return None
         return destination.tosId

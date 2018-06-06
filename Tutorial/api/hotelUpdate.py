@@ -55,7 +55,6 @@ def read(**kwargs):
     }
 
 
-
 @transaction.atomic
 def update(**kwargs):
     syncMap = kwargs.get("syncMap")

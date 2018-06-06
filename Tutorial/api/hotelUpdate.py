@@ -4,6 +4,7 @@ import json
 import projectConfig
 
 from datetime import datetime
+from django.utils import timezone
 from utilities import djangoUtils, utils
 from django.db import transaction
 from collections import OrderedDict
@@ -33,10 +34,10 @@ def read(**kwargs):
         last = djangoUtils.decodeId(last) if last else 0
         hotelUpdates = hotelUpdates.filter(pk__gt=last)
 
-        dateFrom = query.get("fromDate")
-        if dateFrom is not None:
-            dateFrom = datetime.strptime(dateFrom, projectConfig.DATE_FORMAT)
-            hotelUpdates = hotelUpdates.filter(updated__gte=dateFrom)
+        fromDate = query.get("fromDate")
+        if fromDate is not None:
+            fromDate = datetime.strptime(fromDate, projectConfig.DATE_FORMAT)
+            hotelUpdates = hotelUpdates.filter(updated__gte=fromDate)
 
         hotelUpdates = hotelUpdates[start:start+count+1]
         total = hotelUpdates.count()
@@ -61,13 +62,14 @@ def update(**kwargs):
     updateIds = [djangoUtils.decodeId(updateId) for updateId in syncMap.keys()]
 
     hotelUpdates = {hotelUpdate.id: hotelUpdate for hotelUpdate in HotelUpdate.objects.filter(pk__in=updateIds).all()}
+    hotelNewList = []
+    hotelList = []
     for updateId in syncMap:
         hotelUpdate = hotelUpdates[djangoUtils.decodeId(updateId)]
 
         jsonData = json.loads(hotelUpdate.json)
         name_cn = jsonData["name_cn"] if "name_cn" in jsonData else None
         name_en = jsonData["name_en"] if "name_en" in jsonData else None
-        cityId = jsonData["cityId"] if "cityId" in jsonData else None
         address = jsonData["address"] if "address" in jsonData else None
         zipCode = jsonData["zipCode"] if "zipCode" in jsonData else None
         latitude = jsonData["latitude"] if "latitude" in jsonData else None
@@ -79,21 +81,32 @@ def update(**kwargs):
         rooms = jsonData["rooms"] if "rooms" in jsonData else None
 
         hotel = Hotel.objects.filter(sourceId=hotelUpdate.sourceId, source=hotelUpdate.source).first()
+        versionData = OrderedDict([("name_cn", name_cn),
+                                   ("name_en", name_en),
+                                   ("address", address),
+                                   ("zipCode", zipCode),
+                                   ("longitude", longitude),
+                                   ("latitude", latitude),
+                                   ("starRating", starRating),
+                                   ("telephone", telephone)])
+        version = utils.generateVersion(versionData)
         if not hotel:
-            hotel = Hotel.objects.create(source=hotelUpdate.source,
-                                         sourceId=hotelUpdate.sourceId,
-                                         name_cn=name_cn,
-                                         name_en=name_en,
-                                         cityId=cityId,
-                                         address=address,
-                                         latitude=latitude,
-                                         longitude=longitude,
-                                         geohash8=geohash8,
-                                         telephone=telephone,
-                                         starRating=starRating,
-                                         amenity=amenity,
-                                         rooms=rooms,
-                                         tosId=djangoUtils.decodeId(syncMap[updateId]))
+            hotel = Hotel(source=hotelUpdate.source,
+                          sourceId=hotelUpdate.sourceId,
+                          name_cn=name_cn,
+                          name_en=name_en,
+                          cityId=hotelUpdate.cityId,
+                          address=address,
+                          latitude=latitude,
+                          longitude=longitude,
+                          geohash8=geohash8,
+                          telephone=telephone,
+                          starRating=starRating,
+                          amenity=amenity,
+                          rooms=rooms,
+                          tosId=djangoUtils.decodeId(syncMap[updateId]),
+                          version=version)
+            hotelNewList.append(hotel)
         else:
             if name_cn:
                 hotel.name_cn = name_cn
@@ -101,8 +114,6 @@ def update(**kwargs):
                 hotel.name_en = name_en
             if address:
                 hotel.address = address
-            if cityId:
-                hotel.cityId = cityId
             if zipCode:
                 hotel.zipCode = zipCode
             if longitude:
@@ -114,16 +125,10 @@ def update(**kwargs):
             if telephone:
                 hotel.telephone = telephone
             hotel.tosId = djangoUtils.decodeId(syncMap[updateId])
-
-        versionData = OrderedDict([("name_cn", name_cn),
-                                   ("name_en", name_en),
-                                   ("address", address),
-                                   ("cityId", cityId),
-                                   ("zipCode", zipCode),
-                                   ("longitude", longitude),
-                                   ("latitude", latitude),
-                                   ("starRating", starRating),
-                                   ("telephone", telephone)])
-        hotel.version = utils.generateVersion(versionData)
-        hotel.save()
-        indexHotel(hotel)
+            hotel.version = version
+            hotel.save()
+        hotelList.append(hotel)
+    if hotelNewList:
+        Hotel.objects.bulk_create(hotelNewList)
+    if hotelList:
+        indexHotel(hotelList)

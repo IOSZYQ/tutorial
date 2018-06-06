@@ -12,10 +12,62 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tutorial_Server.settings")
 django.setup()
 
+import datetime
+import projectConfig
+
 from django.conf import settings
-from clients.map import GoogleMapClient
+from clients import GoogleMapClient, DidaClient
 from utilities.utils import generateVersion
 from Tutorial.models import Destination, Dida, DestinationUpdate, DestinationSubCity, Hotel, HotelUpdate
+
+
+def _saveStaticData(dateStr, countryJson=None, cityJson=None, hotelCsv=None):
+    fileName = None
+    data = None
+
+    if countryJson:
+        fileName = "country_{0}.json".format(dateStr)
+        data = countryJson
+
+    if cityJson:
+        fileName = "city_{0}.json".format(dateStr)
+        data = cityJson
+
+    if hotelCsv:
+        fileName = "hotel{0}.csv".format(dateStr)
+        data = hotelCsv
+
+    if fileName and data:
+        filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", fileName)
+        saveFile = open(filePath, "w", encoding="utf-8", newline="")
+        saveFile.write(data)
+        saveFile.close()
+    return fileName
+
+
+def downloadDidaStaticData():
+    dateStr = datetime.datetime.now().strftime(projectConfig.DATETIME_FILE_FORMAT)
+    client = DidaClient()
+    countries = client.downCountryList()["Countries"]
+
+    countryJson = json.dumps(countries, indent=4)
+    countryFile = _saveStaticData(dateStr, countryJson=countryJson)
+
+    cityList = []
+    countryCodes = [country["ISOCountryCode"] for country in countries]
+    for countryCode in countryCodes:
+        cities = client.downCityList(countryCode=countryCode)
+        if not cities or "Cities" not in cities:
+            continue
+
+        cityList.extend(cities["Cities"])
+    cityJson = json.dumps(cityList, indent=4)
+    cityFile = _saveStaticData(dateStr, cityJson=cityJson)
+
+    hotelCsv = client.downGetStaticInformation()
+    hotelFile = _saveStaticData(dateStr, hotelCsv=hotelCsv)
+
+    Dida.objects.create(countryFile=countryFile, cityFile=cityFile, hotelFile=hotelFile)
 
 
 def _generateCountryUpdate(destination, data, newVersion):
@@ -104,11 +156,15 @@ def normalizeDidaCountry():
         data = collections.OrderedDict([("name_cn", name_cn), ("name_en", name_en), ("countryCode", countryCode)])
         newVersion = generateVersion(data)
 
-        destination = Destination.objects.filter(countryCode=countryCode, source="dida").first()
+        destination = Destination.objects.filter(countryCode=countryCode,
+                                                 source="dida",
+                                                 sourceId__isnull=True).first()
         update = _generateCountryUpdate(destination, data, newVersion)
 
         if update:
-            destinationUpdate = DestinationUpdate.objects.filter(countryCode=countryCode).first()
+            destinationUpdate = DestinationUpdate.objects.filter(countryCode=countryCode,
+                                                                 source="dida",
+                                                                 sourceId__isnull=True).first()
             if not destinationUpdate:
                 DestinationUpdate.objects.create(countryCode=countryCode, source="dida", json=json.dumps(update))
             else:
@@ -145,7 +201,7 @@ def normalizeDidaCity():
         update = _generateCityUpdate(destination, data, newVersion)
 
         if update:
-            destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId).first()
+            destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId, source="dida").first()
             if not destinationUpdate:
                 destinationUpdate = DestinationUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, source="dida", json=json.dumps(update))
                 subCities = []
@@ -189,7 +245,6 @@ def normalizeDidaHotel():
         data = collections.OrderedDict([("name_cn", name_cn),
                                         ("name_en", name_en),
                                         ("address", address),
-                                        ("cityId", cityId),
                                         ("zipCode", zipCode),
                                         ("longitude", longitude),
                                         ("latitude", latitude),
@@ -203,7 +258,13 @@ def normalizeDidaHotel():
         if update:
             hotelUpdate = HotelUpdate.objects.filter(source="dida", sourceId=sourceId).first()
             if not hotelUpdate:
-                HotelUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, longitude=longitude, latitude=latitude, cityId=cityId, source="dida", json=json.dumps(update))
+                HotelUpdate.objects.create(sourceId=sourceId,
+                                           countryCode=countryCode,
+                                           longitude=longitude,
+                                           latitude=latitude,
+                                           cityId=cityId,
+                                           source="dida",
+                                           json=json.dumps(update))
             else:
                 hotelUpdate.data = json.dumps(update)
                 hotelUpdate.save()
@@ -219,12 +280,12 @@ def gecodeLocationWithHotelInfo():
 
         cityIds = list(cityIds)
         cityIds.append(destinationUpdate.sourceId)
-        hotel = HotelUpdate.objects.filter(cityId__in=cityIds, source="dida").first()
-        if not hotel:
+        hotelUpdate = HotelUpdate.objects.filter(cityId__in=cityIds, source="dida").first()
+        if not hotelUpdate:
             continue
 
-        destinationUpdate.longitude = hotel.longitude
-        destinationUpdate.latitude = hotel.latitude
+        destinationUpdate.longitude = hotelUpdate.longitude
+        destinationUpdate.latitude = hotelUpdate.latitude
         destinationUpdate.save()
 
 
@@ -250,6 +311,7 @@ def geocodeLocationWithMapApi():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(conflict_handler='resolve')
+    parser.add_argument("--download", action="store_true", help="download dida data")
     parser.add_argument("--country", action="store_true", help="normalize countries")
     parser.add_argument("--city", action="store_true", help="normalize cities")
     parser.add_argument("--hotel", action="store_true", help="normalize hotels")
@@ -257,6 +319,8 @@ if __name__ == "__main__":
     parser.add_argument("--gecode2", action="store_true", help="gecode cities")
 
     args = parser.parse_args()
+    if args.download:
+        downloadDidaStaticData()
     if args.country:
         normalizeDidaCountry()
     if args.city:

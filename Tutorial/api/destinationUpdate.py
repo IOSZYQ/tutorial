@@ -4,6 +4,7 @@ import json
 import projectConfig
 
 from datetime import datetime
+from django.utils import timezone
 from django.db import transaction
 from collections import OrderedDict
 from utilities import djangoUtils, utils
@@ -35,11 +36,14 @@ def read(**kwargs):
         if country is not None:
             isNull = True if country.lower() == "true" else False
             destinationUpdates = destinationUpdates.filter(sourceId__isnull=isNull)
+        else:
+            destinationUpdates = destinationUpdates.objects.filter(longitude__isnull=False,
+                                                                   latitude__isnull=False)
 
-        dateFrom = query.get("fromDate")
-        if dateFrom is not None:
-            dateFrom = datetime.strptime(dateFrom, projectConfig.DATE_FORMAT)
-            destinationUpdates = destinationUpdates.filter(updated__gte=dateFrom)
+        fromDate = query.get("fromDate")
+        if fromDate is not None:
+            fromDate = datetime.strptime(fromDate, projectConfig.DATE_FORMAT)
+            destinationUpdates = destinationUpdates.filter(updated__gte=fromDate)
 
         destinationUpdates = destinationUpdates[start:start+count+1]
         total = destinationUpdates.count()
@@ -64,6 +68,7 @@ def update(**kwargs):
     updateIds = [djangoUtils.decodeId(updateId) for updateId in syncMap.keys()]
 
     destinationUpdates = {destinationUpdate.id: destinationUpdate for destinationUpdate in DestinationUpdate.objects.filter(pk__in=updateIds).all()}
+    destinationList = []
     for updateId in syncMap:
         destinationUpdate = destinationUpdates[djangoUtils.decodeId(updateId)]
 
@@ -73,26 +78,32 @@ def update(**kwargs):
 
         destination = Destination.objects.filter(sourceId=destinationUpdate.sourceId,
                                                  countryCode=destinationUpdate.countryCode,
-                                                 source="dida").first()
+                                                 source=destinationUpdate.source).first()
+
+        versionData = OrderedDict([
+            ("name_cn", name_cn),
+            ("name_en", name_en),
+        ])
+        version = utils.generateVersion(versionData)
         if not destination:
-            destination = Destination.objects.create(source=destinationUpdate.source,
-                                                     sourceId=destinationUpdate.sourceId,
-                                                     name_cn=name_cn,
-                                                     name_en=name_en,
-                                                     longitude=destinationUpdate.longitude,
-                                                     latitude=destinationUpdate.latitude,
-                                                     countryCode=destinationUpdate.countryCode,
-                                                     adminLevel=1 if destinationUpdate.sourceId is None else 2,
-                                                     tosId=djangoUtils.decodeId(syncMap[updateId]))
+            destination = Destination(source=destinationUpdate.source,
+                                      sourceId=destinationUpdate.sourceId,
+                                      name_cn=name_cn,
+                                      name_en=name_en,
+                                      longitude=destinationUpdate.longitude,
+                                      latitude=destinationUpdate.latitude,
+                                      countryCode=destinationUpdate.countryCode,
+                                      adminLevel=1 if destinationUpdate.sourceId is None else 2,
+                                      tosId=djangoUtils.decodeId(syncMap[updateId]),
+                                      version=version)
+            destinationList.append(destination)
         else:
             if name_cn:
                 destination.name_cn = name_cn
             if name_en:
                 destination.name_en = name_en
             destination.tosId = djangoUtils.decodeId(syncMap[updateId])
-        versionData = OrderedDict([
-            ("name_cn", name_cn),
-            ("name_en", name_en),
-        ])
-        destination.version = utils.generateVersion(versionData)
-        destination.save()
+            destination.version = utils.generateVersion(versionData)
+            destination.save()
+    if destinationList:
+        Destination.objects.bulk_create(destinationList)

@@ -36,12 +36,12 @@ class HotelUpdateSerializer(DataSerializer):
         destination = Destination.objects.filter(countryCode=self._hotelUpdate.countryCode,
                                                  sourceId__isnull=True,
                                                  source=self._hotelUpdate.source).first()
-        if not destination:
+        if not destination or not not destination.tosId:
             return None
-        return destination.tosId
+        return djangoUtils.encodeId(destination.tosId)
 
     def cityId(self, fields=None):
         destination = Destination.objects.filter(sourceId=self._hotelUpdate.cityId, source=self._hotelUpdate.source).first()
-        if not destination:
+        if not destination or not not destination.tosId:
             return None
-        return destination.tosId
+        return djangoUtils.encodeId(destination.tosId)

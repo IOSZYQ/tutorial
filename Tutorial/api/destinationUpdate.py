@@ -36,7 +36,7 @@ def read(**kwargs):
             isNull = True if country.lower() == "true" else False
             destinationUpdates = destinationUpdates.filter(sourceId__isnull=isNull)
 
-        dateFrom = query.get("dateFrom")
+        dateFrom = query.get("fromDate")
         if dateFrom is not None:
             dateFrom = datetime.strptime(dateFrom, projectConfig.DATE_FORMAT)
             destinationUpdates = destinationUpdates.filter(updated__gte=dateFrom)

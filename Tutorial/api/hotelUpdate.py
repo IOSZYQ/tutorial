@@ -33,7 +33,7 @@ def read(**kwargs):
         last = djangoUtils.decodeId(last) if last else 0
         hotelUpdates = hotelUpdates.filter(pk__gt=last)
 
-        dateFrom = query.get("dateFrom")
+        dateFrom = query.get("fromDate")
         if dateFrom is not None:
             dateFrom = datetime.strptime(dateFrom, projectConfig.DATE_FORMAT)
             hotelUpdates = hotelUpdates.filter(updated__gte=dateFrom)

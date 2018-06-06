@@ -24,12 +24,12 @@ class HotelFind(APIView):
 
 class DestinationUpdates(APIView):
     def get(self, request, format=None):
-        dateFrom = request.GET.get("dateFrom", None)
+        dateFrom = request.GET.get("fromDate", None)
         country = request.GET.get("country", None)
         last, start, count = getPagePosition(request)
 
         destinationUpdates = destinationUpdateApi.read(query={
-            "dateFrom": dateFrom,
+            "fromDate": dateFrom,
             "country": country
         }, fields=DestinationUpdateFields.brief, start=start, count=count, last=last)["updates"]
         return viewResponse({"updates": destinationUpdates})
@@ -37,11 +37,11 @@ class DestinationUpdates(APIView):
 
 class HotelUpdates(APIView):
     def get(self, request, format=None):
-        dateFrom = request.GET.get("dateFrom", None)
+        dateFrom = request.GET.get("fromDate", None)
         last, start, count = getPagePosition(request)
 
         hotelUpdates = hotelUpdateApi.read(query={
-            "dateFrom": dateFrom
+            "fromDate": dateFrom
         },fields=HotelUpdateFields.brief, start=start, count=count, last=last)["updates"]
         return viewResponse({"updates": hotelUpdates})
 

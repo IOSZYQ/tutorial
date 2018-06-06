@@ -30,6 +30,12 @@ def read(**kwargs):
         return searchHotels(fetchStart, fetchTripCnt, longitude=destination.longitude, latitude=destination.latitude, distance=30000)
 
     hotelIds, hasMore, highlights, total = apiUtils.searchWithHighlights(last, start, count, doSearchHotels)
+    if not hotelIds:
+        return {
+            "priceList": [],
+            "hasMore": False
+        }
+
     hotels = Hotel.objects.filter(pk__in=hotelIds).all()
     tosIdMap = {hotel.sourceId: hotel.tosId for hotel in hotels}
 

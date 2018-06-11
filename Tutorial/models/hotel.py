@@ -40,3 +40,6 @@ class HotelUpdate(models.Model):
 
     class Meta:
         app_label = "Tutorial"
+        index_together = [
+            ("source", "cityId")
+        ]

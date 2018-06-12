@@ -9,7 +9,6 @@ class Destination(models.Model):
     countryCode    = models.CharField(max_length=16, null=True)
     version        = models.CharField(max_length=64, null=True)
     tosId          = models.IntegerField(null=True)
-    parentId       = models.IntegerField(null=True)
     longitude      = models.FloatField(null=True)
     latitude       = models.FloatField(null=True)
     name_cn        = models.CharField(max_length=255, null=True)

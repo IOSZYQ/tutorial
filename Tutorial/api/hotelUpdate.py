@@ -4,10 +4,8 @@ import json
 import projectConfig
 
 from datetime import datetime
-from django.utils import timezone
 from utilities import djangoUtils, utils
 from django.db import transaction
-from collections import OrderedDict
 
 from Tutorial.elastic import indexHotel
 from Tutorial.models import HotelUpdate, Hotel
@@ -34,7 +32,7 @@ def read(**kwargs):
         last = djangoUtils.decodeId(last) if last else 0
         hotelUpdates = hotelUpdates.filter(pk__gt=last)
 
-        fromDate = query.get("fromDate")
+        fromDate = query.get("date")
         if fromDate is not None:
             fromDate = datetime.strptime(fromDate, projectConfig.DATE_FORMAT)
             hotelUpdates = hotelUpdates.filter(updated__gte=fromDate)
@@ -81,14 +79,14 @@ def update(**kwargs):
         rooms = jsonData["rooms"] if "rooms" in jsonData else None
 
         hotel = Hotel.objects.filter(sourceId=hotelUpdate.sourceId, source=hotelUpdate.source).first()
-        versionData = OrderedDict([("name_cn", name_cn),
-                                   ("name_en", name_en),
-                                   ("address", address),
-                                   ("zipCode", zipCode),
-                                   ("longitude", longitude),
-                                   ("latitude", latitude),
-                                   ("starRating", starRating),
-                                   ("telephone", telephone)])
+        versionData = [("name_cn", name_cn),
+                       ("name_en", name_en),
+                       ("address", address),
+                       ("zipCode", zipCode),
+                       ("longitude", longitude),
+                       ("latitude", latitude),
+                       ("starRating", starRating),
+                       ("telephone", telephone)]
         version = utils.generateVersion(versionData)
         if not hotel:
             hotel = Hotel(source=hotelUpdate.source,

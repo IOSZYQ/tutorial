@@ -219,7 +219,7 @@ def normalizeDidaCity():
             if update:
                 destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId, source="dida").first()
                 if not destinationUpdate:
-                    newDestinationUpdates.append(DestinationUpdate(sourceId=sourceId, subCityList=subCityList, countryCode=countryCode, source="dida", json=json.dumps(update)))
+                    newDestinationUpdates.append(DestinationUpdate(sourceId=sourceId, subCities=subCityList, countryCode=countryCode, source="dida", json=json.dumps(update)))
                 else:
                     destinationUpdate.data = json.dumps(update)
                     destinationUpdate.save()
@@ -293,7 +293,7 @@ def gecodeLocationWithHotelInfo():
                                                           latitude__isnull=True,
                                                           sourceId__isnull=False).order_by("id")
     for destinationUpdate in destinationUpdates:
-        cityIds = json.loads(destinationUpdate.subCityList)
+        cityIds = json.loads(destinationUpdate.subCities)
         hotelUpdate = HotelUpdate.objects.filter(cityId__in=cityIds, source="dida").first()
         if not hotelUpdate:
             continue

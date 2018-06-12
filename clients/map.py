@@ -16,7 +16,6 @@ class GoogleMapClient(object):
         }
 
         r = requests.get(url=projectConfig.GOOGLE_MAP_URL, params=params, verify=certifi.where())
-        print(r.text)
         if r.status_code != 200:
             return None, None
 

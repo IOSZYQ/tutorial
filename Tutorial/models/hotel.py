@@ -18,8 +18,6 @@ class Hotel(models.Model):
     geohash8       = models.CharField(max_length=16, null=True)
     starRating     = models.CharField(max_length=32)
     telephone      = models.CharField(max_length=128, null=True)
-    amenity        = models.TextField(null=True)
-    rooms          = models.TextField(null=True)
     inactive       = models.BooleanField(default=False)
     created        = models.DateTimeField(auto_now_add=True)
 

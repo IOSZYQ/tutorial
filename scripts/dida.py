@@ -6,7 +6,6 @@ import time
 import json
 import django
 import argparse
-import collections
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "Tutorial_Server.settings")
@@ -18,7 +17,7 @@ import projectConfig
 from django.conf import settings
 from clients import GoogleMapClient, DidaClient
 from utilities.utils import generateVersion
-from Tutorial.models import Destination, Dida, DestinationUpdate, DestinationSubCity, Hotel, HotelUpdate
+from Tutorial.models import Destination, Dida, DestinationUpdate, Hotel, HotelUpdate
 
 
 def _saveStaticData(dateStr, countryJson=None, cityJson=None, hotelCsv=None):
@@ -92,7 +91,7 @@ def _generateCityUpdate(destination, data, newVersion):
     name_en = data["name_en"]
 
     if not destination:
-        return dict(data)
+        return data
     elif destination.version != newVersion:
         update = {}
         if name_cn != destination.name_cn:
@@ -108,7 +107,6 @@ def _generateHotelUpdate(hotel, data, newVersion):
     name_cn = data["name_cn"]
     name_en = data["name_en"]
     address = data["address"]
-    cityId = data["cityId"]
     zipCode = data["zipCode"]
     longitude = data["longitude"]
     latitude = data["latitude"]
@@ -125,8 +123,6 @@ def _generateHotelUpdate(hotel, data, newVersion):
             update.update({"name_en": name_en})
         if address != hotel.address:
             update.update({"address": address})
-        if cityId != hotel.cityId:
-            update.update({"cityId": cityId})
         if zipCode != hotel.zipCode:
             update.update({"zipCode": zipCode})
         if longitude != hotel.longitude:
@@ -143,7 +139,7 @@ def _generateHotelUpdate(hotel, data, newVersion):
 
 
 def normalizeDidaCountry():
-    dida = Dida.objects.filter(normalizeTime__isnull=True).order_by("-created").first()
+    dida = Dida.objects.filter().order_by("-created").first()
     filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.countryFile)
     countryFile = open(filePath, "r")
     countries = json.loads(countryFile.read())
@@ -153,74 +149,90 @@ def normalizeDidaCountry():
         name_en = countryInfo["CountryName"]
         countryCode = countryInfo["ISOCountryCode"]
 
-        data = collections.OrderedDict([("name_cn", name_cn), ("name_en", name_en), ("countryCode", countryCode)])
+        data = [("name_cn", name_cn), ("name_en", name_en)]
         newVersion = generateVersion(data)
 
         destination = Destination.objects.filter(countryCode=countryCode,
                                                  source="dida",
                                                  sourceId__isnull=True).first()
-        update = _generateCountryUpdate(destination, data, newVersion)
+        update = _generateCountryUpdate(destination, dict(data), newVersion)
 
+        newDestinationUpdates = []
         if update:
             destinationUpdate = DestinationUpdate.objects.filter(countryCode=countryCode,
                                                                  source="dida",
                                                                  sourceId__isnull=True).first()
             if not destinationUpdate:
-                DestinationUpdate.objects.create(countryCode=countryCode, source="dida", json=json.dumps(update))
+                newDestinationUpdates.append(DestinationUpdate(countryCode=countryCode, source="dida", json=json.dumps(update)))
             else:
                 destinationUpdate.data = json.dumps(update)
                 destinationUpdate.save()
+        if newDestinationUpdates:
+            DestinationUpdate.objects.bulk_create(newDestinationUpdates)
 
 
 def normalizeDidaCity():
-    dida = Dida.objects.filter(normalizeTime__isnull=True).order_by("-created").first()
+    dida = Dida.objects.filter().order_by("-created").first()
     filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.cityFile)
     cityFile = open(filePath, "r")
     cities = json.loads(cityFile.read())
 
-    subCityMap = {}
+    cityMap = {}
     for city in cities:
         sourceId = city["CityCode"]
         parentCityCode = city["ParentCityCode"] if "ParentCityCode" in city else None
-        if parentCityCode != sourceId:
-            subCityMap.setdefault(parentCityCode, []).append(sourceId)
-
-    for city in cities:
-        name_en = city["CityName"]
-        name_cn = city["CityName_CN"] if "CityName_CN" in city else None
-        sourceId = city["CityCode"]
-        parentCityCode = city["ParentCityCode"] if "ParentCityCode" in city else None
-        if parentCityCode != sourceId:
-            continue
         countryCode = city["CountryCode"]
-        data = collections.OrderedDict([("name_cn", name_cn),
-                                        ("name_en", name_en)])
-        newVersion = generateVersion(data)
 
-        destination = Destination.objects.filter(sourceId=sourceId, source="dida").first()
-        update = _generateCityUpdate(destination, data, newVersion)
+        if countryCode not in cityMap:
+            cityMap[countryCode] = {}
 
-        if update:
-            destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId, source="dida").first()
-            if not destinationUpdate:
-                destinationUpdate = DestinationUpdate.objects.create(sourceId=sourceId, countryCode=countryCode, source="dida", json=json.dumps(update))
-                subCities = []
-                if sourceId in subCityMap:
-                    for subCityCode in subCityMap[sourceId]:
-                        subCities.append(DestinationSubCity(update=destinationUpdate, cityId=subCityCode))
-                if subCities:
-                    DestinationSubCity.objects.bulk_create(subCities)
+        if parentCityCode != sourceId:
+            if parentCityCode not in cityMap[countryCode]:
+                cityMap[countryCode][parentCityCode] = {"subCityList": []}
+
+            cityMap[countryCode][parentCityCode]["subCityList"].append(sourceId)
+        else:
+            if sourceId not in cityMap[countryCode]:
+                cityMap[countryCode][sourceId] = {"subCityList": [sourceId], "info": city}
             else:
-                destinationUpdate.data = json.dumps(update)
-                destinationUpdate.save()
+                cityMap[countryCode][sourceId]["info"] = city
+
+    for cities in cityMap.values():
+        for city in cities.values():
+            if "info" not in city or "subCityList" not in city:
+                continue
+
+            cityInfo = city["info"]
+            subCityList = json.dumps(city["subCityList"])
+            name_en = cityInfo["CityName"]
+            name_cn = cityInfo["CityName_CN"] if "CityName_CN" in cityInfo else None
+            sourceId = cityInfo["CityCode"]
+
+            data = [("name_cn", name_cn), ("name_en", name_en)]
+            newVersion = generateVersion(data)
+
+            destination = Destination.objects.filter(sourceId=sourceId, source="dida").first()
+            update = _generateCityUpdate(destination, dict(data), newVersion)
+
+            newDestinationUpdates = []
+            if update:
+                destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId, source="dida").first()
+                if not destinationUpdate:
+                    newDestinationUpdates.append(DestinationUpdate(sourceId=sourceId, subCityList=subCityList, countryCode=countryCode, source="dida", json=json.dumps(update)))
+                else:
+                    destinationUpdate.data = json.dumps(update)
+                    destinationUpdate.save()
+            if newDestinationUpdates:
+                DestinationUpdate.objects.bulk_create(newDestinationUpdates)
 
 
 def normalizeDidaHotel():
-    dida = Dida.objects.filter(normalizeTime__isnull=True).order_by("-created").first()
+    dida = Dida.objects.filter().order_by("-created").first()
     filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.hotelFile)
     hotelFile = open(filePath, "r", encoding="utf-8")
     hotels = hotelFile.read()
 
+    newHotelUpdates = []
     for hotelInfo in hotels.split("\n")[1:]:
         items = hotelInfo.split("|")
         if len(items) < 16:
@@ -242,32 +254,37 @@ def normalizeDidaHotel():
         starRating = items[14]
         telephone = items[15]
 
-        data = collections.OrderedDict([("name_cn", name_cn),
-                                        ("name_en", name_en),
-                                        ("address", address),
-                                        ("zipCode", zipCode),
-                                        ("longitude", longitude),
-                                        ("latitude", latitude),
-                                        ("starRating", starRating),
-                                        ("telephone", telephone)])
+        data = [("name_cn", name_cn),
+                ("name_en", name_en),
+                ("address", address),
+                ("zipCode", zipCode),
+                ("longitude", longitude),
+                ("latitude", latitude),
+                ("starRating", starRating),
+                ("telephone", telephone)]
         newVersion = generateVersion(data)
 
         hotel = Hotel.objects.filter(sourceId=sourceId, source="dida").first()
-        update = _generateHotelUpdate(hotel, data, newVersion)
+        update = _generateHotelUpdate(hotel, dict(data), newVersion)
 
         if update:
             hotelUpdate = HotelUpdate.objects.filter(source="dida", sourceId=sourceId).first()
             if not hotelUpdate:
-                HotelUpdate.objects.create(sourceId=sourceId,
-                                           countryCode=countryCode,
-                                           longitude=longitude,
-                                           latitude=latitude,
-                                           cityId=cityId,
-                                           source="dida",
-                                           json=json.dumps(update))
+                newHotelUpdates.append(
+                    HotelUpdate(sourceId=sourceId,
+                                countryCode=countryCode,
+                                longitude=longitude,
+                                latitude=latitude,
+                                cityId=cityId,
+                                source="dida",
+                                json=json.dumps(update))
+                )
             else:
                 hotelUpdate.data = json.dumps(update)
                 hotelUpdate.save()
+        if len(newHotelUpdates) >= 128:
+            HotelUpdate.objects.bulk_create(newHotelUpdates)
+            newHotelUpdates = []
 
 
 def gecodeLocationWithHotelInfo():
@@ -275,11 +292,7 @@ def gecodeLocationWithHotelInfo():
                                                           latitude__isnull=True,
                                                           sourceId__isnull=False).order_by("id")
     for destinationUpdate in destinationUpdates:
-        print(destinationUpdate.id)
-        cityIds = DestinationSubCity.objects.filter(update=destinationUpdate).values_list("cityId", flat=True)
-
-        cityIds = list(cityIds)
-        cityIds.append(destinationUpdate.sourceId)
+        cityIds = json.loads(destinationUpdate.subCityList)
         hotelUpdate = HotelUpdate.objects.filter(cityId__in=cityIds, source="dida").first()
         if not hotelUpdate:
             continue
@@ -297,7 +310,6 @@ def geocodeLocationWithMapApi():
 
     client = GoogleMapClient()
     for destinationUpdate in destinationUpdates:
-        print(destinationUpdate.id)
         jsonData = json.loads(destinationUpdate.json)
         longitude, latitude = client.searchLocation(jsonData["name_en"])
         if longitude and latitude:

@@ -8,4 +8,3 @@ class Dida(models.Model):
     cityFile           = models.FilePathField(null=True)
     hotelFile          = models.FilePathField(null=True)
     created            = models.DateTimeField(auto_now_add=True)
-    normalizeTime      = models.DateTimeField(null=True)

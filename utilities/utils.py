@@ -44,7 +44,7 @@ def generateVersion(data):
     md5 = hashlib.md5()
 
     dataStr = ""
-    for key, value in data.items():
+    for key, value in data:
         if not value:
             value = ""
         dataStr += "{0}={1}|".format(key, value)

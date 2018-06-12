@@ -30,19 +30,12 @@ class DestinationUpdate(models.Model):
     source          = models.CharField(max_length=32)
     sourceId        = models.CharField(max_length=32, null=True)
     countryCode     = models.CharField(max_length=16, null=True)
+    subCityList     = models.TextField(null=True)
     longitude       = models.FloatField(null=True)
     latitude        = models.FloatField(null=True)
     json            = models.TextField()
     created         = models.DateTimeField(auto_now_add=True)
     updated         = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        app_label = "Tutorial"
-
-
-class DestinationSubCity(models.Model):
-    update = models.ForeignKey(DestinationUpdate, related_name="subCities")
-    cityId = models.CharField(max_length=32, null=True)
 
     class Meta:
         app_label = "Tutorial"

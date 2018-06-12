@@ -207,6 +207,7 @@ def normalizeDidaCity():
             name_en = cityInfo["CityName"]
             name_cn = cityInfo["CityName_CN"] if "CityName_CN" in cityInfo else None
             sourceId = cityInfo["CityCode"]
+            countryCode = cityInfo["CountryCode"]
 
             data = [("name_cn", name_cn), ("name_en", name_en)]
             newVersion = generateVersion(data)
@@ -311,7 +312,7 @@ def geocodeLocationWithMapApi():
     client = GoogleMapClient()
     for destinationUpdate in destinationUpdates:
         jsonData = json.loads(destinationUpdate.json)
-        longitude, latitude = client.searchLocation(jsonData["name_en"])
+        longitude, latitude = client.searchLocation(jsonData["name_en"], destinationUpdate.countryCode)
         if longitude and latitude:
             destinationUpdate.longitude = longitude
             destinationUpdate.latitude = latitude

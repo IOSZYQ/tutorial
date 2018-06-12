@@ -8,13 +8,15 @@ import projectConfig
 
 class GoogleMapClient(object):
     @classmethod
-    def _fetchData(cls, address):
+    def _fetchData(cls, address, region):
         params = {
             "address": address,
-            "key": projectConfig.GOOGLE_MAP_KEY
+            "key": projectConfig.GOOGLE_MAP_KEY,
+            "region": region
         }
 
         r = requests.get(url=projectConfig.GOOGLE_MAP_URL, params=params, verify=certifi.where())
+        print(r.text)
         if r.status_code != 200:
             return None, None
 
@@ -25,5 +27,5 @@ class GoogleMapClient(object):
         except:
             return None, None
 
-    def searchLocation(self, address):
-        return self._fetchData(address)
+    def searchLocation(self, address, region):
+        return self._fetchData(address, region)

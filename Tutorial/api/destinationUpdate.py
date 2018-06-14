@@ -1,14 +1,12 @@
 __author__ = "HanHui"
 
-import json
 import apiUtils
 import projectConfig
 
 from datetime import datetime
-from django.db import transaction
-from utilities import djangoUtils, utils
+from utilities import djangoUtils
 
-from Tutorial.models import DestinationUpdate, Destination
+from Tutorial.models import DestinationUpdate
 from Tutorial.serializers import DestinationUpdateSerializer
 from Tutorial.api import destination as destinationApi
 
@@ -35,8 +33,8 @@ def read(**kwargs):
         last = djangoUtils.decodeId(last) if last else 0
         destinationUpdates = destinationUpdates.filter(pk__gt=last)
         if country is not None:
-            isNull = True if country.lower() == "true" else False
-            destinationUpdates = destinationUpdates.filter(destination__adminLevel=1)
+            isCountry = True if country.lower() == "true" else False
+            destinationUpdates = destinationUpdates.filter(destination__adminLevel=1 if isCountry else 2)
 
         fromDate = query.get("date")
         if fromDate is not None:

@@ -11,6 +11,7 @@ class DestinationFields:
             "source"         : True,
             "sourceId"       : True,
             "parentId"       : True,
+            "countryCode"    : True,
             "tosId"          : True,
             "updated"        : True,
             "created"        : True,

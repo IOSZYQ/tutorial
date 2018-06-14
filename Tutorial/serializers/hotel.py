@@ -30,3 +30,9 @@ class HotelSerializer(DataSerializer):
         if fields == True:
             return djangoUtils.encodeId(self._hotel.destination_id)
         return DestinationSerializer(destination=self._hotel.destination, fields=DestinationFields.brief).data
+
+    def tosId(self, fields=None):
+        if self._hotel.tosId:
+            return djangoUtils.encodeId(self._hotel.tosId)
+        else:
+            return None

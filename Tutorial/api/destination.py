@@ -1,10 +1,7 @@
 __author__ = "HanHui"
 
 import json
-import apiUtils
-import projectConfig
 
-from datetime import datetime
 from django.db import transaction
 from utilities import djangoUtils, utils
 
@@ -29,10 +26,10 @@ def update(**kwargs):
 
     destinationMap = {djangoUtils.encodeId(destination.id): destination for destination in Destination.objects.filter(pk__in=updateIds).all()}
     for updateId in syncMap:
-        jsonData = syncMap[updateId]
+        jsonData = json.loads(syncMap[updateId]["json"])
         name_cn = jsonData["name_cn"] if "name_cn" in jsonData else None
         name_en = jsonData["name_en"] if "name_en" in jsonData else None
-        tosId = djangoUtils.decodeId(jsonData["tosId"]) if "tosId" in jsonData else None
+        tosId = djangoUtils.decodeId(syncMap[updateId]["tosId"])
 
         destination = destinationMap[updateId]
         versionData = [

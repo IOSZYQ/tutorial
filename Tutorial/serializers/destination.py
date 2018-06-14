@@ -29,3 +29,15 @@ class DestinationSerializer(DataSerializer):
             return djangoUtils.encodeId(self._destination.parent.tosId)
         else:
             return None
+
+    def countryCode(self, fields=None):
+        if self._destination.parent and self._destination.parent.tosId:
+            return self._destination.parent.sourceId
+        else:
+            return self._destination.sourceId
+
+    def tosId(self, fields=None):
+        if self._destination.tosId:
+            return djangoUtils.encodeId(self._destination.tosId)
+        else:
+            return None

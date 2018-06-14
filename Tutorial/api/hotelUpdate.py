@@ -1,15 +1,12 @@
 __author__ = "HanHui"
 
-import json
 import apiUtils
 import projectConfig
 
 from datetime import datetime
-from utilities import djangoUtils, utils
-from django.db import transaction
+from utilities import djangoUtils
 
-from Tutorial.elastic import indexHotel
-from Tutorial.models import HotelUpdate, Hotel
+from Tutorial.models import HotelUpdate
 from Tutorial.api import hotel as hotelApi
 from Tutorial.serializers import HotelUpdateSerializer
 

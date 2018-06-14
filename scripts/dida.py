@@ -17,7 +17,7 @@ import projectConfig
 from django.conf import settings
 from clients import GoogleMapClient, DidaClient
 from utilities.utils import generateVersion
-from Tutorial.models import Destination, Dida, DestinationUpdate, Hotel, HotelUpdate
+from Tutorial.models import Destination, Dida, DestinationUpdate, DestinationSubCity, Hotel, HotelUpdate
 
 
 def _saveStaticData(dateStr, countryJson=None, cityJson=None, hotelCsv=None):
@@ -144,39 +144,45 @@ def normalizeDidaCountry():
     countryFile = open(filePath, "r")
     countries = json.loads(countryFile.read())
 
+    destinationExists = {}
+    countryMap = {}
     for countryInfo in countries:
         name_cn = countryInfo["CountryName_CN"]
         name_en = countryInfo["CountryName"]
-        countryCode = countryInfo["ISOCountryCode"]
+        sourceId = countryInfo["ISOCountryCode"]
 
         data = [("name_cn", name_cn), ("name_en", name_en)]
-        newVersion = generateVersion(data)
+        countryMap[sourceId] = data
 
-        destination = Destination.objects.filter(countryCode=countryCode,
-                                                 source="dida",
-                                                 sourceId__isnull=True).first()
+    destinations = Destination.objects.filter(sourceId__in=countryMap.keys(), source="dida")
+    destinationExists = {destination.sourceId:destination for destination in destinations}
+
+    jsonDataMap = {}
+    newDestinations = []
+    for sourceId, data in countryMap.items():
+        newVersion = generateVersion(data)
+        destination = destinationExists[sourceId] if sourceId in destinationExists else None
         update = _generateCountryUpdate(destination, dict(data), newVersion)
+        if sourceId in destinationExists:
+            if update:
+                DestinationUpdate.objects.filter(destination=destinationExists[destination.sourceId]).update(json=json.dumps(update))
+        else:
+            newDestinations.append(Destination(sourceId=sourceId, source="dida"))
+            jsonDataMap[sourceId] = json.dumps(update)
+
+    if newDestinations:
+        Destination.objects.bulk_create(newDestinations)
+        destinations = Destination.objects.filter(source="dida", sourceId__in=jsonDataMap.keys())
+        destinations = {destination.sourceId: destination for destination in destinations}
 
         newDestinationUpdates = []
-        if update:
-            destinationUpdate = DestinationUpdate.objects.filter(countryCode=countryCode,
-                                                                 source="dida",
-                                                                 sourceId__isnull=True).first()
-            if not destinationUpdate:
-                newDestinationUpdates.append(DestinationUpdate(countryCode=countryCode, source="dida", json=json.dumps(update)))
-            else:
-                destinationUpdate.data = json.dumps(update)
-                destinationUpdate.save()
-        if newDestinationUpdates:
-            DestinationUpdate.objects.bulk_create(newDestinationUpdates)
+        for sourceId, jsonData in jsonDataMap.items():
+            destinationUpdate = DestinationUpdate(destination=destinations[sourceId], json=jsonData)
+            newDestinationUpdates.append(destinationUpdate)
+        DestinationUpdate.objects.bulk_create(newDestinationUpdates)
 
 
-def normalizeDidaCity():
-    dida = Dida.objects.filter().order_by("-created").first()
-    filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.cityFile)
-    cityFile = open(filePath, "r")
-    cities = json.loads(cityFile.read())
-
+def _getCityMap(cities):
     cityMap = {}
     for city in cities:
         sourceId = city["CityCode"]
@@ -187,53 +193,79 @@ def normalizeDidaCity():
             cityMap[countryCode] = {}
 
         if parentCityCode != sourceId:
+            if parentCityCode == "180003":
+                countryCode = "CH"
             if parentCityCode not in cityMap[countryCode]:
-                cityMap[countryCode][parentCityCode] = {"subCityList": []}
+                cityMap[countryCode][parentCityCode] = {"subCities": [parentCityCode]}
 
-            cityMap[countryCode][parentCityCode]["subCityList"].append(sourceId)
+            cityMap[countryCode][parentCityCode]["subCities"].append(sourceId)
         else:
             if sourceId not in cityMap[countryCode]:
-                cityMap[countryCode][sourceId] = {"subCityList": [sourceId], "info": city}
+                cityMap[countryCode][sourceId] = {"subCities": [sourceId], "info": city}
             else:
                 cityMap[countryCode][sourceId]["info"] = city
+    return cityMap
 
-    for cities in cityMap.values():
+
+def normalizeDidaCity():
+    dida = Dida.objects.filter().order_by("-created").first()
+    filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.cityFile)
+    cityFile = open(filePath, "r")
+    cities = json.loads(cityFile.read())
+
+    destinations = Destination.objects.filter(source="dida", adminLevel=1)
+    countries = {destination.sourceId: destination for destination in destinations}
+
+    cityMap = _getCityMap(cities)
+    oneCountryCityMap = {}
+    for countryCode, cities in cityMap.items():
         for city in cities.values():
-            if "info" not in city or "subCityList" not in city:
-                continue
-
             cityInfo = city["info"]
-            subCityList = json.dumps(city["subCityList"])
+            subCities = city["subCities"]
             name_en = cityInfo["CityName"]
             name_cn = cityInfo["CityName_CN"] if "CityName_CN" in cityInfo else None
             sourceId = cityInfo["CityCode"]
             countryCode = cityInfo["CountryCode"]
 
             data = [("name_cn", name_cn), ("name_en", name_en)]
+            oneCountryCityMap[sourceId] = (data, subCities)
+        destinations = Destination.objects.filter(sourceId__in=oneCountryCityMap.keys(), source="dida")
+        destinationExists = {destination.sourceId: destination for destination in destinations}
+
+        jsonDataMap = {}
+        newDestinations = []
+        for sourceId, (data, subCities) in oneCountryCityMap.items():
             newVersion = generateVersion(data)
+            destination = destinationExists[sourceId] if sourceId in destinationExists else None
+            update = _generateCountryUpdate(destination, dict(data), newVersion)
+            if sourceId in destinationExists:
+                if update:
+                    DestinationUpdate.objects.filter(destination=destinationExists[destination.sourceId]).update(json=json.dumps(update))
+            else:
+                newDestinations.append(Destination(sourceId=sourceId, source="dida", adminLevel=2, parent=countries[countryCode]))
+                jsonDataMap[sourceId] = json.dumps(update)
 
-            destination = Destination.objects.filter(sourceId=sourceId, source="dida").first()
-            update = _generateCityUpdate(destination, dict(data), newVersion)
+        if newDestinations:
+            Destination.objects.bulk_create(newDestinations)
+            destinations = Destination.objects.filter(source="dida", sourceId__in=jsonDataMap.keys())
+            destinations = {destination.sourceId: destination for destination in destinations}
 
+            newSubCities = []
             newDestinationUpdates = []
-            if update:
-                destinationUpdate = DestinationUpdate.objects.filter(sourceId=sourceId, source="dida").first()
-                if not destinationUpdate:
-                    newDestinationUpdates.append(DestinationUpdate(sourceId=sourceId, subCities=subCityList, countryCode=countryCode, source="dida", json=json.dumps(update)))
-                else:
-                    destinationUpdate.data = json.dumps(update)
-                    destinationUpdate.save()
-            if newDestinationUpdates:
-                DestinationUpdate.objects.bulk_create(newDestinationUpdates)
+            for sourceId, jsonData in jsonDataMap.items():
+                destinationUpdate = DestinationUpdate(destination=destinations[sourceId], json=jsonData)
+                newDestinationUpdates.append(destinationUpdate)
+
+                for cityId in oneCountryCityMap[sourceId][1]:
+                    subCity = DestinationSubCity(destination=destinations[sourceId], cityId=cityId)
+                    newSubCities.append(subCity)
+            DestinationUpdate.objects.bulk_create(newDestinationUpdates)
+            DestinationSubCity.objects.bulk_create(newSubCities)
+        oneCountryCityMap = {}
 
 
-def normalizeDidaHotel():
-    dida = Dida.objects.filter().order_by("-created").first()
-    filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.hotelFile)
-    hotelFile = open(filePath, "r", encoding="utf-8")
-    hotels = hotelFile.read()
-
-    newHotelUpdates = []
+def _getHotelMap(hotels):
+    hotelMap = {}
     for hotelInfo in hotels.split("\n")[1:]:
         items = hotelInfo.split("|")
         if len(items) < 16:
@@ -263,60 +295,83 @@ def normalizeDidaHotel():
                 ("latitude", latitude),
                 ("starRating", starRating),
                 ("telephone", telephone)]
-        newVersion = generateVersion(data)
+        hotelMap.setdefault(countryCode, []).append((cityId, sourceId, data))
+    return hotelMap
 
-        hotel = Hotel.objects.filter(sourceId=sourceId, source="dida").first()
-        update = _generateHotelUpdate(hotel, dict(data), newVersion)
 
-        if update:
-            hotelUpdate = HotelUpdate.objects.filter(source="dida", sourceId=sourceId).first()
-            if not hotelUpdate:
-                newHotelUpdates.append(
-                    HotelUpdate(sourceId=sourceId,
-                                countryCode=countryCode,
-                                longitude=longitude,
-                                latitude=latitude,
-                                cityId=cityId,
-                                source="dida",
-                                json=json.dumps(update))
-                )
+def normalizeDidaHotel():
+    dida = Dida.objects.filter().order_by("-created").first()
+    filePath = os.path.join(settings.STATICFILES_DIRS[0], "dida", dida.hotelFile)
+    hotelFile = open(filePath, "r", encoding="utf-8")
+    hotels = hotelFile.read()
+
+    subCities = DestinationSubCity.objects.filter().prefetch_related("destination")
+    destinationMap = {}
+    for subCity in subCities:
+        destinationMap[subCity.cityId] = subCity.destination
+
+    hotelMap = _getHotelMap(hotels)
+    for countryCode, oneCountryHotels in hotelMap.items():
+        sourceIds = [hotel[0] for hotel in oneCountryHotels]
+        hotels = Hotel.objects.filter(sourceId__in=sourceIds, source="dida")
+        hotelExists = {hotel.sourceId: hotel for hotel in hotels}
+
+        newHotels = []
+        jsonDataMap = {}
+        for cityId, sourceId, data in oneCountryHotels:
+            newVersion = generateVersion(data)
+            data = dict(data)
+            hotel = hotelExists[sourceId] if sourceId in hotelExists else None
+            update = _generateHotelUpdate(hotel, data, newVersion)
+            if sourceId in hotelExists:
+                if update:
+                    HotelUpdate.objects.filter(hotel=hotelExists[hotel.sourceId]).update(json=json.dumps(update))
             else:
-                hotelUpdate.data = json.dumps(update)
-                hotelUpdate.save()
-        if len(newHotelUpdates) >= 128:
-            HotelUpdate.objects.bulk_create(newHotelUpdates)
+                newHotels.append(Hotel(sourceId=sourceId, source="dida", longitude=data["longitude"], latitude=data["latitude"], destination=destinationMap[cityId]))
+                jsonDataMap[sourceId] = json.dumps(update)
+
+        if newHotels:
+            Hotel.objects.bulk_create(newHotels)
+            hotels = Hotel.objects.filter(source="dida", sourceId__in=jsonDataMap.keys())
+            hotels = {hotel.sourceId: hotel for hotel in hotels}
+
             newHotelUpdates = []
+            for sourceId, jsonData in jsonDataMap.items():
+                hotelUpdate = HotelUpdate(hotel=hotels[sourceId], json=jsonData)
+                newHotelUpdates.append(hotelUpdate)
+            HotelUpdate.objects.bulk_create(newHotelUpdates)
 
 
 def gecodeLocationWithHotelInfo():
-    destinationUpdates = DestinationUpdate.objects.filter(longitude__isnull=True,
-                                                          latitude__isnull=True,
-                                                          sourceId__isnull=False).order_by("id")
-    for destinationUpdate in destinationUpdates:
-        cityIds = json.loads(destinationUpdate.subCities)
-        hotelUpdate = HotelUpdate.objects.filter(cityId__in=cityIds, source="dida").first()
-        if not hotelUpdate:
+    destinations = Destination.objects.filter(adminLevel=2,
+                                              source="dida",
+                                              longitude__isnull=True,
+                                              latitude__isnull=True).order_by("id")
+
+    for destination in destinations:
+        hotel = Hotel.objects.filter(destination=destination, source="dida").first()
+        if not hotel:
             continue
 
-        destinationUpdate.longitude = hotelUpdate.longitude
-        destinationUpdate.latitude = hotelUpdate.latitude
-        destinationUpdate.save()
+        destination.longitude = hotel.longitude
+        destination.latitude = hotel.latitude
+        destination.save()
 
 
 def geocodeLocationWithMapApi():
     count = 0
-    destinationUpdates = DestinationUpdate.objects.filter(longitude__isnull=True,
-                                                          latitude__isnull=True,
-                                                          source="dida").order_by("id")
+    destinations = Destination.objects.filter(source="dida",
+                                              longitude__isnull=True,
+                                              latitude__isnull=True).prefetch_related("update").order_by("id")
 
     client = GoogleMapClient()
-    for destinationUpdate in destinationUpdates:
-        jsonData = json.loads(destinationUpdate.json)
-        longitude, latitude = client.searchLocation(jsonData["name_en"], destinationUpdate.countryCode)
+    for destination in destinations:
+        jsonData = json.loads(destination.update.json)
+        longitude, latitude = client.searchLocation(jsonData["name_en"])
         if longitude and latitude:
-            destinationUpdate.longitude = longitude
-            destinationUpdate.latitude = latitude
-            destinationUpdate.save()
+            destination.longitude = longitude
+            destination.latitude = latitude
+            destination.save()
         count += 1
         if count >= 2500:
             break

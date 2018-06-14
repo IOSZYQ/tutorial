@@ -6,7 +6,9 @@ from django.utils import timezone
 
 from utilities import DataSerializer, djangoUtils
 
-from ..models import HotelUpdate, Hotel, Destination
+from ..models import HotelUpdate
+from .hotel import HotelSerializer
+from ..dataFormat.hotel import HotelFields
 
 
 class HotelUpdateSerializer(DataSerializer):
@@ -24,24 +26,7 @@ class HotelUpdateSerializer(DataSerializer):
     def updated(self, fields=None):
         return timezone.localtime(self._hotelUpdate.updated).strftime(projectConfig.DATE_TIME_FORMAT)
 
-    def tosId(self, fields=None):
-        hotel = Hotel.objects.filter(sourceId=self._hotelUpdate.sourceId,
-                                     source=self._hotelUpdate.source).first()
-        if hotel and hotel.tosId:
-            return djangoUtils.encodeId(hotel.tosId)
-        else:
-            return None
-
-    def countryId(self, fields=None):
-        destination = Destination.objects.filter(countryCode=self._hotelUpdate.countryCode,
-                                                 sourceId__isnull=True,
-                                                 source=self._hotelUpdate.source).first()
-        if not destination or not not destination.tosId:
-            return None
-        return djangoUtils.encodeId(destination.tosId)
-
-    def cityId(self, fields=None):
-        destination = Destination.objects.filter(sourceId=self._hotelUpdate.cityId, source=self._hotelUpdate.source).first()
-        if not destination or not not destination.tosId:
-            return None
-        return djangoUtils.encodeId(destination.tosId)
+    def hotel(self, fields=None):
+        if fields == True:
+            return djangoUtils.encodeId(self._hotelUpdate.hotel_id)
+        return HotelSerializer(hotel=self._hotelUpdate.hotel, fields=HotelFields.brief)

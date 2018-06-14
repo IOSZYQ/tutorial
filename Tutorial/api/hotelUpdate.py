@@ -1,6 +1,7 @@
 __author__ = "HanHui"
 
 import json
+import apiUtils
 import projectConfig
 
 from datetime import datetime
@@ -9,6 +10,7 @@ from django.db import transaction
 
 from Tutorial.elastic import indexHotel
 from Tutorial.models import HotelUpdate, Hotel
+from Tutorial.api import hotel as hotelApi
 from Tutorial.serializers import HotelUpdateSerializer
 
 
@@ -37,6 +39,7 @@ def read(**kwargs):
             fromDate = datetime.strptime(fromDate, projectConfig.DATE_FORMAT)
             hotelUpdates = hotelUpdates.filter(updated__gte=fromDate)
 
+        hotelUpdates = hotelUpdates.prefetch_related("hotel")
         hotelUpdates = hotelUpdates[start:start+count+1]
         total = hotelUpdates.count()
         if total > count:
@@ -46,87 +49,16 @@ def read(**kwargs):
         else:
             hasMore = False
 
-    data = [HotelUpdateSerializer(hotelUpdate, fields=fields).data for hotelUpdate in hotelUpdates]
+    relatedFields = apiUtils.popFields(fields, ['hotel'])
+    updateData = [HotelUpdateSerializer(hotelUpdate, fields=fields).data for hotelUpdate in hotelUpdates]
+    hotelIds = djangoUtils.combineHashes(apiUtils.collectValues(updateData, ["hotel"]))
+    if hotelIds and relatedFields.get("hotel"):
+        hotels = hotelApi.read(query={"id": hotelIds}, fields=relatedFields["hotel"])
+        hotelDict = {hotel["id"]: hotel for hotel in hotels}
+        apiUtils.updateFieldValue(updateData, ["hotel"], relatedFields, hotelDict)
+
     return {
         "total": total,
         "hasMore": hasMore,
-        "updates": data
+        "updates": updateData
     }
-
-
-@transaction.atomic
-def update(**kwargs):
-    syncMap = kwargs.get("syncMap")
-    updateIds = [djangoUtils.decodeId(updateId) for updateId in syncMap.keys()]
-
-    hotelUpdates = {hotelUpdate.id: hotelUpdate for hotelUpdate in HotelUpdate.objects.filter(pk__in=updateIds).all()}
-    hotelNewList = []
-    hotelList = []
-    for updateId in syncMap:
-        hotelUpdate = hotelUpdates[djangoUtils.decodeId(updateId)]
-
-        jsonData = json.loads(hotelUpdate.json)
-        name_cn = jsonData["name_cn"] if "name_cn" in jsonData else None
-        name_en = jsonData["name_en"] if "name_en" in jsonData else None
-        address = jsonData["address"] if "address" in jsonData else None
-        zipCode = jsonData["zipCode"] if "zipCode" in jsonData else None
-        latitude = jsonData["latitude"] if "latitude" in jsonData else None
-        longitude = jsonData["longitude"] if "longitude" in jsonData else None
-        geohash8 = jsonData["geohash8"] if "geohash8" in jsonData else None
-        starRating = jsonData["starRating"] if "starRating" in jsonData else None
-        telephone = jsonData["telephone"] if "telephone" in jsonData else None
-        amenity = jsonData["amenity"] if "amenity" in jsonData else None
-        rooms = jsonData["rooms"] if "rooms" in jsonData else None
-
-        hotel = Hotel.objects.filter(sourceId=hotelUpdate.sourceId, source=hotelUpdate.source).first()
-        versionData = [("name_cn", name_cn),
-                       ("name_en", name_en),
-                       ("address", address),
-                       ("zipCode", zipCode),
-                       ("longitude", longitude),
-                       ("latitude", latitude),
-                       ("starRating", starRating),
-                       ("telephone", telephone)]
-        version = utils.generateVersion(versionData)
-        if not hotel:
-            hotel = Hotel(source=hotelUpdate.source,
-                          sourceId=hotelUpdate.sourceId,
-                          name_cn=name_cn,
-                          name_en=name_en,
-                          cityId=hotelUpdate.cityId,
-                          address=address,
-                          latitude=latitude,
-                          longitude=longitude,
-                          geohash8=geohash8,
-                          telephone=telephone,
-                          starRating=starRating,
-                          amenity=amenity,
-                          rooms=rooms,
-                          tosId=djangoUtils.decodeId(syncMap[updateId]),
-                          version=version)
-            hotelNewList.append(hotel)
-        else:
-            if name_cn:
-                hotel.name_cn = name_cn
-            if name_en:
-                hotel.name_en = name_en
-            if address:
-                hotel.address = address
-            if zipCode:
-                hotel.zipCode = zipCode
-            if longitude:
-                hotel.longitude = longitude
-            if latitude:
-                hotel.latitude = latitude
-            if starRating:
-                hotel.starRating = starRating
-            if telephone:
-                hotel.telephone = telephone
-            hotel.tosId = djangoUtils.decodeId(syncMap[updateId])
-            hotel.version = version
-            hotel.save()
-        hotelList.append(hotel)
-    if hotelNewList:
-        Hotel.objects.bulk_create(hotelNewList)
-    if hotelList:
-        indexHotel(hotelList)

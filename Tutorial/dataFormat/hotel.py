@@ -1,16 +1,18 @@
 __author__ = "HanHui"
 
 from utilities import classproperty
-from .hotel import HotelFields
+from .destination import DestinationFields
 
 
-class HotelUpdateFields:
+class HotelFields:
     @classproperty
     def brief(cls):
         return {
             "id"            : True,
-            "hotel"         : HotelFields.brief,
-            "json"          : True,
+            "source"        : True,
+            "sourceId"      : True,
+            "tosId"         : True,
+            "destination"   : DestinationFields.brief,
             "updated"       : True,
             "created"       : True,
         }

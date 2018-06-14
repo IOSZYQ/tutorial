@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from utilities.viewUtils import viewResponse, getPagePosition
 
 from Tutorial.dataFormat import DestinationUpdateFields, HotelUpdateFields
-from Tutorial.api import didaApi, destinationUpdateApi, hotelUpdateApi
+from Tutorial.api import didaApi, destinationUpdateApi, hotelUpdateApi, destinationApi, hotelApi
 
 
 class HotelFind(APIView):
@@ -25,13 +25,11 @@ class HotelFind(APIView):
 class DestinationUpdates(APIView):
     def get(self, request, format=None):
         fromDate = request.GET.get("date", None)
-        source = request.GET.get("source", "dida")
         country = request.GET.get("country", None)
         last, start, count = getPagePosition(request)
 
         destinationUpdates = destinationUpdateApi.read(query={
             "date": fromDate,
-            "source": source,
             "country": country
         }, fields=DestinationUpdateFields.brief, start=start, count=count, last=last)["updates"]
         return viewResponse({"updates": destinationUpdates})
@@ -52,7 +50,7 @@ class DestinationSync(APIView):
     def put(self, request, format=None):
         syncMap = request.data.get("syncMap")
 
-        destinationUpdateApi.update(syncMap=syncMap)
+        destinationApi.update(syncMap=syncMap)
         return viewResponse({})
 
 
@@ -60,5 +58,5 @@ class HotelSync(APIView):
     def put(self, request, format=None):
         syncMap = request.data.get("syncMap")
 
-        hotelUpdateApi.update(syncMap=syncMap)
+        hotelApi.update(syncMap=syncMap)
         return viewResponse({})

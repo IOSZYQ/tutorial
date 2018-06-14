@@ -10,6 +10,7 @@ from utilities import djangoUtils, utils
 
 from Tutorial.models import DestinationUpdate, Destination
 from Tutorial.serializers import DestinationUpdateSerializer
+from Tutorial.api import destination as destinationApi
 
 
 def read(**kwargs):
@@ -24,10 +25,8 @@ def read(**kwargs):
         hasMore = False
         destinationUpdates = DestinationUpdate.objects.filter(pk__in=updateIds)
     else:
-        source = query.get("source")
-        destinationUpdates = DestinationUpdate.objects.filter(longitude__isnull=False,
-                                                              latitude__isnull=False,
-                                                              source=source)
+        destinationUpdates = DestinationUpdate.objects.filter(destination__longitude__isnull=False,
+                                                              destination__latitude__isnull=False)
         country = query.get("country", None)
 
         last = kwargs.get("last", None)
@@ -37,13 +36,14 @@ def read(**kwargs):
         destinationUpdates = destinationUpdates.filter(pk__gt=last)
         if country is not None:
             isNull = True if country.lower() == "true" else False
-            destinationUpdates = destinationUpdates.filter(sourceId__isnull=isNull)
+            destinationUpdates = destinationUpdates.filter(destination__adminLevel=1)
 
         fromDate = query.get("date")
         if fromDate is not None:
             fromDate = datetime.strptime(fromDate, projectConfig.DATE_FORMAT)
             destinationUpdates = destinationUpdates.filter(updated__gte=fromDate)
 
+        destinationUpdates = destinationUpdates.prefetch_related("destination")
         destinationUpdates = destinationUpdates[start:start+count+1]
         total = destinationUpdates.count()
         if total > count:
@@ -53,55 +53,16 @@ def read(**kwargs):
         else:
             hasMore = False
 
-    data = [DestinationUpdateSerializer(destinationUpdate, fields=fields).data for destinationUpdate in destinationUpdates]
+    relatedFields = apiUtils.popFields(fields, ['destination'])
+    updateData = [DestinationUpdateSerializer(destinationUpdate, fields=fields).data for destinationUpdate in destinationUpdates]
+    destinationIds = djangoUtils.combineHashes(apiUtils.collectValues(updateData, ["destination"]))
+    if destinationIds and relatedFields.get("destination"):
+        destinations = destinationApi.read(query={"id": destinationIds}, fields=relatedFields["destination"])
+        destinationDict = {destination["id"]: destination for destination in destinations}
+        apiUtils.updateFieldValue(updateData, ["destination"], relatedFields, destinationDict)
+
     return {
         "total": total,
         "hasMore": hasMore,
-        "updates": data
+        "updates": updateData
     }
-
-
-@transaction.atomic
-def update(**kwargs):
-    syncMap = kwargs.get("syncMap")
-    updateIds = [djangoUtils.decodeId(updateId) for updateId in syncMap.keys()]
-
-    destinationUpdates = {destinationUpdate.id: destinationUpdate for destinationUpdate in DestinationUpdate.objects.filter(pk__in=updateIds).all()}
-    destinationList = []
-    for updateId in syncMap:
-        destinationUpdate = destinationUpdates[djangoUtils.decodeId(updateId)]
-
-        jsonData = json.loads(destinationUpdate.json)
-        name_cn = jsonData["name_cn"] if "name_cn" in jsonData else None
-        name_en = jsonData["name_en"] if "name_en" in jsonData else None
-
-        destination = Destination.objects.filter(sourceId=destinationUpdate.sourceId,
-                                                 countryCode=destinationUpdate.countryCode,
-                                                 source=destinationUpdate.source).first()
-
-        versionData = [
-            ("name_cn", name_cn),
-            ("name_en", name_en),
-        ]
-        version = utils.generateVersion(versionData)
-        if not destination:
-            destination = Destination(source=destinationUpdate.source,
-                                      sourceId=destinationUpdate.sourceId,
-                                      name_cn=name_cn,
-                                      name_en=name_en,
-                                      longitude=destinationUpdate.longitude,
-                                      latitude=destinationUpdate.latitude,
-                                      countryCode=destinationUpdate.countryCode,
-                                      tosId=djangoUtils.decodeId(syncMap[updateId]),
-                                      version=version)
-            destinationList.append(destination)
-        else:
-            if name_cn:
-                destination.name_cn = name_cn
-            if name_en:
-                destination.name_en = name_en
-            destination.tosId = djangoUtils.decodeId(syncMap[updateId])
-            destination.version = utils.generateVersion(versionData)
-            destination.save()
-    if destinationList:
-        Destination.objects.bulk_create(destinationList)

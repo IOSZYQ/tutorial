@@ -1,6 +1,7 @@
 __author__ = "HanHui"
 
 from utilities import classproperty
+from .destination import DestinationFields
 
 
 class DestinationUpdateFields:
@@ -8,14 +9,8 @@ class DestinationUpdateFields:
     def brief(cls):
         return {
             "id"             : True,
-            "source"         : True,
-            "sourceId"       : True,
-            "parentId"       : True,
-            "tosId"          : True,
-            "countryCode"    : True,
             "json"           : True,
             "updated"        : True,
             "created"        : True,
-            "longitude"      : True,
-            "latitude"       : True
+            "destination"    : DestinationFields.brief
         }

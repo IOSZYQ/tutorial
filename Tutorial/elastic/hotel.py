@@ -130,6 +130,9 @@ def searchHotels(start=0, count=10, latitude=None, longitude=None, distance=1000
             }
         })
 
+    if star:
+        filters.append({"term": {"starRating": int(star)}})
+
     hotelQuery = elasticUtils.filteredQuery(hotelQuery, filters)
     highlight = {
         "fields" : { field:{} for field in highlightFields }

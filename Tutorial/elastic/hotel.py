@@ -18,7 +18,7 @@ def _hotelDoc(hotel, fields=None):
         "cityId"            : hotel.destination.sourceId,
         "address"           : hotel.address,
         "location"          : {"lat": hotel.latitude, "lon": hotel.longitude} if hotel.latitude and hotel.longitude else None,
-        "starRating"        : float(hotel.starRating) if hotel.starRating else None,
+        "starRating"        : int(float(hotel.starRating)) if hotel.starRating else None,
         "created"           : hotel.created
     }
     return hotelDoc

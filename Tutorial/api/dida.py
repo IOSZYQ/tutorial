@@ -27,7 +27,7 @@ def read(**kwargs):
         }
 
     def doSearchHotels(fetchStart, fetchTripCnt):
-        return searchHotels(fetchStart, fetchTripCnt, longitude=destination.longitude, latitude=destination.latitude, distance=30000)
+        return searchHotels(fetchStart, fetchTripCnt, star=star, longitude=destination.longitude, latitude=destination.latitude, distance=30000)
 
     hotelIds, hasMore, highlights, total = apiUtils.searchWithHighlights(last, start, count, doSearchHotels)
     if not hotelIds:
@@ -40,7 +40,8 @@ def read(**kwargs):
     tosIdMap = {hotel.sourceId: hotel.tosId for hotel in hotels}
 
     client = DidaClient()
-    hotels = client.searchHotelPrices(checkIn, checkOut, hotelList=[int(hotel.sourceId) for hotel in hotels])
+    hotelList = [int(hotel.sourceId) for hotel in hotels]
+    hotels = client.searchHotelPrices(checkIn, checkOut, hotelList=hotelList)
     hotelDict = {str(hotel["HotelID"]): hotel for hotel in hotels}
 
     hotelPrices = [{"price": hotelDict[sourceId]["LowestPrice"]["Value"],

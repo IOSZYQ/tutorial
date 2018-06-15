@@ -8,18 +8,18 @@ from Tutorial.api import didaApi, destinationUpdateApi, hotelUpdateApi, destinat
 
 
 class HotelFind(APIView):
-    def get(self, request, format=None):
-        checkIn = request.GET.get("checkIn", None)
-        checkOut = request.GET.get("checkOut", None)
-        star = request.GET.get("star", None)
-        city = request.GET.get("city", None)
+    def post(self, request, format=None):
+        checkIn = request.data.get("checkIn", None)
+        checkOut = request.data.get("checkOut", None)
+        star = request.data.get("star", None)
+        city = request.data.get("city", None)
         last, start, count = getPagePosition(request)
 
-        hotels = didaApi.read(query={"checkIn": checkIn,
+        result = didaApi.read(query={"checkIn": checkIn,
                                      "checkOut": checkOut,
                                      "star": star,
                                      "city": city}, start=start, count=count, last=last)
-        return viewResponse({"hotels": hotels})
+        return viewResponse(result)
 
 
 class DestinationUpdates(APIView):

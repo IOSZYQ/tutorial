@@ -6,6 +6,7 @@ import hashlib
 import logging
 import requests
 import collections
+from math import cos, sin, atan2, sqrt, pi ,radians, degrees
 
 adtwLogger = logging.getLogger("ADTW")
 
@@ -110,3 +111,25 @@ def updatedObjAttr(obj, attr, value, updatedFields):
     if getattr(obj, attr) != value:
         updatedFields.append(attr)
         setattr(obj, attr, value)
+
+
+def calculateCenterPos(locations):
+    x = 0
+    y = 0
+    z = 0
+    if len(locations) == 1:
+        return locations[0]
+
+    lenth = len(locations)
+    for lon, lat in locations:
+        lon = radians(float(lon))
+        lat = radians(float(lat))
+
+        x += cos(lat) * cos(lon)
+        y += cos(lat) * sin(lon)
+        z += sin(lat)
+
+    x = float(x / lenth)
+    y = float(y / lenth)
+    z = float(z / lenth)
+    return (degrees(atan2(y, x)), degrees(atan2(z, sqrt(x * x + y * y))))

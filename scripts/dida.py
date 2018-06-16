@@ -16,7 +16,7 @@ import projectConfig
 
 from django.conf import settings
 from clients import GoogleMapClient, DidaClient
-from utilities.utils import generateVersion
+from utilities.utils import generateVersion, calculateCenterPos
 from Tutorial.models import Destination, Dida, DestinationUpdate, DestinationSubCity, Hotel, HotelUpdate
 
 
@@ -346,15 +346,16 @@ def gecodeLocationWithHotelInfo():
     destinations = Destination.objects.filter(adminLevel=2,
                                               source="dida",
                                               longitude__isnull=True,
-                                              latitude__isnull=True).order_by("id")
+                                              latitude__isnull=True).prefetch_related("hotels").order_by("id")
 
     for destination in destinations:
-        hotel = Hotel.objects.filter(destination=destination, source="dida").first()
-        if not hotel:
+        hotels = destination.hotels.all()
+        if not hotels:
             continue
 
-        destination.longitude = hotel.longitude
-        destination.latitude = hotel.latitude
+        longitude, latitude = calculateCenterPos([(hotel.longitude, hotel.latitude) for hotel in hotels])
+        destination.longitude = longitude
+        destination.latitude = latitude
         destination.save()
 
 

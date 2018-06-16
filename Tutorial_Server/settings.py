@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/2.0/ref/settings/
 """
 
 import os
+import djcelery
+
+djcelery.setup_loader()
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,6 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'Tutorial',
+    'djcelery',
+    "CronTab"
 ]
 
 REST_FRAMEWORK = {
@@ -133,3 +138,9 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static').replace('\\','/')),
     ]
+
+BROKER_URL = 'redis://localhost:6379/1'
+CELERY_RESULT_BACKEND='djcelery.backends.database:DatabaseBackend'
+CELERYBEAT_SCHEDULER = 'djcelery.schedulers.DatabaseScheduler'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'

@@ -44,10 +44,10 @@ def read(**kwargs):
     hotels = client.searchHotelPrices(checkIn, checkOut, hotelList=hotelList)
     hotelDict = {str(hotel["HotelID"]): hotel for hotel in hotels}
 
-    hotelPrices = [{"price": hotelDict[sourceId]["LowestPrice"]["Value"],
+    hotelQuotes = [{"price": hotelDict[sourceId]["LowestPrice"]["Value"],
                     "currency": utils.getCurrencyCode(hotelDict[sourceId]["LowestPrice"]["Currency"]),
                     "tosId": djangoUtils.encodeId(tosIdMap[sourceId]) if sourceId in tosIdMap else None} for sourceId in hotelDict]
     return {
-        "priceList": hotelPrices,
+        "hotelQuotes": hotelQuotes,
         "hasMore": hasMore
     }

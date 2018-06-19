@@ -22,7 +22,7 @@ def read(**kwargs):
     destination = Destination.objects.filter(tosId=djangoUtils.decodeId(cityId), source="dida").first()
     if not destination:
         return {
-            "priceList": [],
+            "hotelQuotes": [],
             "hasMore": False
         }
 
@@ -32,7 +32,7 @@ def read(**kwargs):
     hotelIds, hasMore, highlights, total = apiUtils.searchWithHighlights(last, start, count, doSearchHotels)
     if not hotelIds:
         return {
-            "priceList": [],
+            "hotelQuotes": [],
             "hasMore": False
         }
 

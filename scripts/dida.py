@@ -144,7 +144,6 @@ def normalizeDidaCountry():
     countryFile = open(filePath, "r")
     countries = json.loads(countryFile.read())
 
-    destinationExists = {}
     countryMap = {}
     for countryInfo in countries:
         name_cn = countryInfo["CountryName_CN"]
@@ -312,7 +311,7 @@ def normalizeDidaHotel():
 
     hotelMap = _getHotelMap(hotels)
     for countryCode, oneCountryHotels in hotelMap.items():
-        sourceIds = [hotel[0] for hotel in oneCountryHotels]
+        sourceIds = [hotel[1] for hotel in oneCountryHotels]
         hotels = Hotel.objects.filter(sourceId__in=sourceIds, source="dida")
         hotelExists = {hotel.sourceId: hotel for hotel in hotels}
 
@@ -331,7 +330,12 @@ def normalizeDidaHotel():
                 jsonDataMap[sourceId] = json.dumps(update)
 
         if newHotels:
-            Hotel.objects.bulk_create(newHotels)
+            startIndex = 0
+            createHotels = newHotels[startIndex:1000]
+            while createHotels:
+                Hotel.objects.bulk_create(createHotels)
+                startIndex += 1000
+                createHotels = newHotels[startIndex:startIndex+1000]
             hotels = Hotel.objects.filter(source="dida", sourceId__in=jsonDataMap.keys())
             hotels = {hotel.sourceId: hotel for hotel in hotels}
 
@@ -374,7 +378,7 @@ def geocodeLocationWithMapApi():
             destination.latitude = latitude
             destination.save()
         count += 1
-        if count >= 2500:
+        if count >= 10000:
             break
         time.sleep(1)
 

@@ -378,7 +378,7 @@ def geocodeLocationWithMapApi():
             destination.latitude = latitude
             destination.save()
         count += 1
-        if count >= 10000:
+        if count >= 1000:
             break
         time.sleep(1)
 

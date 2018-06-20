@@ -29,4 +29,4 @@ class DestinationUpdateSerializer(DataSerializer):
     def destination(self, fields=None):
         if fields == True:
             return djangoUtils.encodeId(self._destinationUpdate.destination_id)
-        return DestinationSerializer(destination=destination, fields=DestinationFields.brief).data
+        return DestinationSerializer(destination=self._destinationUpdate.destination, fields=DestinationFields.brief).data

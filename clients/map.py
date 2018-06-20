@@ -20,10 +20,9 @@ class GoogleMapClient(object):
 
         try:
             data = json.loads(r.text)
-            location = data["results"][0]["geometry"]["location"]
-            return location["lng"], location["lat"]
+            return data["results"][0]["geometry"]
         except:
-            return None, None
+            return None
 
     def searchLocation(self, address):
         return self._fetchData(address)

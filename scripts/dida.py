@@ -16,7 +16,7 @@ import projectConfig
 
 from django.conf import settings
 from clients import GoogleMapClient, DidaClient
-from utilities.utils import generateVersion, calculateCenterPos
+from utilities.utils import generateVersion, calculateCenterPos, calculateBounds
 from Tutorial.models import Destination, Dida, DestinationUpdate, DestinationSubCity, Hotel, HotelUpdate
 
 
@@ -354,28 +354,37 @@ def gecodeLocationWithHotelInfo():
 
     for destination in destinations:
         hotels = destination.hotels.all()
-        if not hotels:
+
+        locations = [{"lng": hotel.longitude, "lat": hotel.latitude} for hotel in hotels if hotel.latitude and hotel.longitude]
+        if not locations:
             continue
 
-        longitude, latitude = calculateCenterPos([(hotel.longitude, hotel.latitude) for hotel in hotels])
+        longitude, latitude = calculateCenterPos(locations)
+        bounds = calculateBounds(locations)
         destination.longitude = longitude
         destination.latitude = latitude
+        destination.longitudeW = bounds["lngW"]
+        destination.longitudeE = bounds["lngE"]
+        destination.latitudeS = bounds["latS"]
+        destination.latitudeN = bounds["latN"]
         destination.save()
 
 
 def geocodeLocationWithMapApi():
     count = 0
-    destinations = Destination.objects.filter(source="dida",
-                                              longitude__isnull=True,
-                                              latitude__isnull=True).prefetch_related("update").order_by("id")
+    destinations = Destination.objects.filter(source="dida").prefetch_related("update").order_by("id")
 
     client = GoogleMapClient()
     for destination in destinations:
         jsonData = json.loads(destination.update.json)
-        longitude, latitude = client.searchLocation(jsonData["name_en"])
-        if longitude and latitude:
-            destination.longitude = longitude
-            destination.latitude = latitude
+        geometry = client.searchLocation(jsonData["name_en"])
+        if geometry:
+            destination.longitude = geometry["location"]["lng"]
+            destination.latitude = geometry["location"]["lat"]
+            destination.longitudeW = geometry["viewport"]["southwest"]["lng"]
+            destination.longitudeE = geometry["viewport"]["northeast"]["lng"]
+            destination.latitudeN = geometry["viewport"]["northeast"]["lat"]
+            destination.latitudeS = geometry["viewport"]["southwest"]["lat"]
             destination.save()
         count += 1
         if count >= 1000:

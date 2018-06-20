@@ -118,18 +118,61 @@ def calculateCenterPos(locations):
     y = 0
     z = 0
     if len(locations) == 1:
-        return locations[0]
+        return locations[0]["lng"], locations[0]["lat"]
 
     lenth = len(locations)
-    for lon, lat in locations:
-        lon = radians(float(lon))
-        lat = radians(float(lat))
+    for location in locations:
+        lon = radians(float(location["lng"]))
+        lat = radians(float(location["lat"]))
 
-        x += cos(lat) * cos(lon)
-        y += cos(lat) * sin(lon)
+        x += cos(lat) * cos(location["lng"])
+        y += cos(lat) * sin(location["lng"])
         z += sin(lat)
 
     x = float(x / lenth)
     y = float(y / lenth)
     z = float(z / lenth)
     return (degrees(atan2(y, x)), degrees(atan2(z, sqrt(x * x + y * y))))
+
+
+def calculateBounds(locations):
+    latitudes = sorted([location["lat"] for location in locations])
+    longitudes = sorted([location["lng"] for location in locations])
+
+    latS = latitudes[0]
+    latN = latitudes[-1]
+    latDist = latN - latS
+    latN += latDist / 20
+    if latN > 85:
+        latN = 85
+
+    latS -= latDist / 20
+    if latS < -85:
+        latS = -85
+
+
+    lngW = longitudes[0]
+    lngE = longitudes[-1]
+    minLngDis = lngE - lngW
+
+    for i in range(0, len(longitudes) - 1):
+        lngDis = longitudes[i] - longitudes[i + 1] + 360
+        if lngDis < minLngDis:
+            minLngDis = lngDis
+            lngE = longitudes[i]
+            lngW = longitudes[i + 1]
+
+    lngE += minLngDis / 20
+    if lngE > 180:
+        lngE -= 360
+
+    lngW -= minLngDis / 20
+    if lngW < -180:
+        lngW += 360
+
+    return {
+        "latN": latN,
+        "latS": latS,
+        "lngE": lngE,
+        "lngW": lngW
+    }

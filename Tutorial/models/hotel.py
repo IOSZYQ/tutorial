@@ -30,6 +30,10 @@ class Hotel(models.Model):
             ("destination", "source")
         ]
 
+        unique_together = [
+            ("source", "sourceId")
+        ]
+
 
 class HotelUpdate(models.Model):
     json            = models.TextField()

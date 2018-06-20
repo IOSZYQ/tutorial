@@ -16,5 +16,9 @@ class DestinationFields:
             "updated"        : True,
             "created"        : True,
             "longitude"      : True,
-            "latitude"       : True
+            "latitude"       : True,
+            "longitudeW"     : True,
+            "longitudeE"     : True,
+            "latitudeN"      : True,
+            "latitudeS"      : True
         }

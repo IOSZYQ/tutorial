@@ -25,6 +25,10 @@ class Destination(models.Model):
     class Meta:
         app_label = "Tutorial"
 
+        unique_together = [
+            ("source", "sourceId")
+        ]
+
 
 class DestinationSubCity(models.Model):
     cityId = models.CharField(max_length=32)

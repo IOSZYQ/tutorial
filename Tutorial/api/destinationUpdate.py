@@ -23,8 +23,7 @@ def read(**kwargs):
         hasMore = False
         destinationUpdates = DestinationUpdate.objects.filter(pk__in=updateIds)
     else:
-        destinationUpdates = DestinationUpdate.objects.filter(destination__longitude__isnull=False,
-                                                              destination__latitude__isnull=False)
+        destinationUpdates = DestinationUpdate.objects.all()
         country = query.get("country", None)
 
         last = kwargs.get("last", None)
@@ -35,6 +34,9 @@ def read(**kwargs):
         if country is not None:
             isCountry = True if country.lower() == "true" else False
             destinationUpdates = destinationUpdates.filter(destination__adminLevel=1 if isCountry else 2)
+            if not isCountry:
+                destinationUpdates = destinationUpdates.filter(destination__longitude__isnull=False,
+                                                               destination__latitude__isnull=False)
 
         fromDate = query.get("date")
         if fromDate is not None:

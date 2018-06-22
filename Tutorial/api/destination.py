@@ -29,7 +29,14 @@ def update(**kwargs):
         jsonData = json.loads(syncMap[updateId]["json"])
         name_cn = jsonData["name_cn"] if "name_cn" in jsonData else None
         name_en = jsonData["name_en"] if "name_en" in jsonData else None
-        tosId = djangoUtils.decodeId(syncMap[updateId]["tosId"])
+        longitude = syncMap[updateId]["destination"]["longitude"]
+        latitude = syncMap[updateId]["destination"]["latitude"]
+        longitudeE = syncMap[updateId]["destination"]["longitudeE"]
+        longitudeW = syncMap[updateId]["destination"]["longitudeW"]
+        latitudeS = syncMap[updateId]["destination"]["latitudeS"]
+        latitudeN = syncMap[updateId]["destination"]["latitudeN"]
+
+        tosId = djangoUtils.decodeId(syncMap[updateId]["destination"]["tosId"])
 
         destination = destinationMap[updateId]
         versionData = [
@@ -43,5 +50,17 @@ def update(**kwargs):
             destination.name_en = name_en
         if tosId:
             destination.tosId = tosId
+        if latitude:
+            destination.latitude = latitude
+        if longitude:
+            destination.longitude = longitude
+        if longitudeE:
+            destination.longitudeE = longitudeE
+        if longitudeW:
+            destination.longitudeW = longitudeW
+        if latitudeS:
+            destination.latitudeS = latitudeS
+        if latitudeN:
+            destination.latitudeN = latitudeN
         destination.version = version
         destination.save()
